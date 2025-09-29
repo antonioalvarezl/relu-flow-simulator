@@ -1,0 +1,526 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ReLU Neural ODE Density Flow Simulator</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f5f5f5;
+            color: #333;
+        }
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            padding: 30px;
+        }
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+            border-bottom: 2px solid #e0e0e0;
+            padding-bottom: 20px;
+        }
+        .header h1 {
+            color: #2c3e50;
+            margin: 0;
+            font-size: 2.5em;
+        }
+        .header p {
+            color: #7f8c8d;
+            font-size: 1.2em;
+            margin: 10px 0;
+        }
+        .main-content {
+            display: grid;
+            grid-template-columns: 1fr 400px;
+            gap: 30px;
+            margin-bottom: 30px;
+        }
+        .visualization-area {
+            min-height: 600px;
+        }
+        .controls {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 8px;
+            border-left: 4px solid #3498db;
+        }
+        .control-group {
+            margin-bottom: 20px;
+        }
+        .control-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 600;
+            color: #2c3e50;
+        }
+        .control-group input, .control-group select {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 14px;
+        }
+        .control-group input[type="range"] {
+            cursor: pointer;
+        }
+        .value-display {
+            color: #7f8c8d;
+            font-size: 0.9em;
+            margin-top: 2px;
+        }
+        .button {
+            background: #3498db;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            transition: background 0.3s;
+            width: 100%;
+            margin-bottom: 10px;
+        }
+        .button:hover {
+            background: #2980b9;
+        }
+        .button.secondary {
+            background: #95a5a6;
+        }
+        .button.secondary:hover {
+            background: #7f8c8d;
+        }
+        #canvas {
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            background: white;
+            width: 100%;
+            max-width: 800px;
+        }
+        .math-section {
+            background: #fff;
+            margin: 20px 0;
+            padding: 20px;
+            border-radius: 5px;
+            border-left: 4px solid #e74c3c;
+        }
+        .math-section h3 {
+            color: #c0392b;
+            margin-top: 0;
+        }
+        .formula {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 5px;
+            font-family: 'Computer Modern', serif;
+            text-align: center;
+            margin: 10px 0;
+        }
+        .citation-box {
+            background: #e8f4fd;
+            border: 1px solid #bee5eb;
+            border-radius: 5px;
+            padding: 15px;
+            margin: 20px 0;
+        }
+        .citation-box h4 {
+            color: #0c5460;
+            margin-top: 0;
+        }
+        @media (max-width: 768px) {
+            .main-content {
+                grid-template-columns: 1fr;
+            }
+            .header h1 {
+                font-size: 2em;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>ReLU Neural ODE Density Flow Simulator</h1>
+            <p>Interactive visualization of density evolution under single-neuron ReLU neural ODEs</p>
+            <p><em>A tool for understanding neural ODE dynamics with closed-form solutions</em></p>
+        </div>
+
+        <div class="main-content">
+            <div class="visualization-area">
+                <canvas id="canvas" width="800" height="600"></canvas>
+            </div>
+
+            <div class="controls">
+                <h3>Simulation Parameters</h3>
+                
+                <div class="control-group">
+                    <label for="weight">Weight (w):</label>
+                    <input type="range" id="weight" min="-3" max="3" step="0.1" value="1">
+                    <div class="value-display" id="weight-value">1.0</div>
+                </div>
+
+                <div class="control-group">
+                    <label for="bias">Bias (b):</label>
+                    <input type="range" id="bias" min="-2" max="2" step="0.1" value="0">
+                    <div class="value-display" id="bias-value">0.0</div>
+                </div>
+
+                <div class="control-group">
+                    <label for="time">Time (t):</label>
+                    <input type="range" id="time" min="0" max="5" step="0.1" value="0">
+                    <div class="value-display" id="time-value">0.0</div>
+                </div>
+
+                <div class="control-group">
+                    <label for="initial-distribution">Initial Distribution:</label>
+                    <select id="initial-distribution">
+                        <option value="gaussian">Gaussian</option>
+                        <option value="uniform">Uniform</option>
+                        <option value="bimodal">Bimodal</option>
+                    </select>
+                </div>
+
+                <div class="control-group">
+                    <label for="gaussian-std">Gaussian σ:</label>
+                    <input type="range" id="gaussian-std" min="0.1" max="2" step="0.1" value="0.5">
+                    <div class="value-display" id="gaussian-std-value">0.5</div>
+                </div>
+
+                <button class="button" onclick="animateFlow()">Animate Flow</button>
+                <button class="button secondary" onclick="reset()">Reset</button>
+                <button class="button secondary" onclick="exportData()">Export Data</button>
+            </div>
+        </div>
+
+        <div class="math-section">
+            <h3>Mathematical Background</h3>
+            <p>This simulator visualizes the evolution of probability densities under the flow of a one-neuron ReLU neural ODE:</p>
+            <div class="formula">
+                <strong>ẋ = max(0, wx + b)</strong>
+            </div>
+            <p>The closed-form solution for the density evolution is:</p>
+            <div class="formula">
+                <strong>ρ(x,t) = ρ₀((x - bt)e^(-wt)) · e^(-wt)</strong> for wx + b > 0<br>
+                <strong>ρ(x,t) = ρ₀(x) · δ(x + b/w)</strong> for wx + b ≤ 0
+            </div>
+        </div>
+
+        <div class="citation-box">
+            <h4>How to Cite</h4>
+            <p><strong>BibTeX:</strong></p>
+            <pre>@misc{alvarez2024relu,
+  title={ReLU Neural ODE Density Flow Simulator},
+  author={Alvarez, Antonio},
+  year={2024},
+  url={https://github.com/antonioalvarezl/relu-flow-simulator},
+  note={Interactive simulator for visualizing density evolution}
+}</pre>
+        </div>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+        let animationId;
+        let isAnimating = false;
+
+        // Get control elements
+        const weightSlider = document.getElementById('weight');
+        const biasSlider = document.getElementById('bias');
+        const timeSlider = document.getElementById('time');
+        const distSelect = document.getElementById('initial-distribution');
+        const stdSlider = document.getElementById('gaussian-std');
+
+        // Value displays
+        const weightValue = document.getElementById('weight-value');
+        const biasValue = document.getElementById('bias-value');
+        const timeValue = document.getElementById('time-value');
+        const stdValue = document.getElementById('gaussian-std-value');
+
+        // Update value displays
+        weightSlider.oninput = () => {
+            weightValue.textContent = parseFloat(weightSlider.value).toFixed(1);
+            draw();
+        };
+        biasSlider.oninput = () => {
+            biasValue.textContent = parseFloat(biasSlider.value).toFixed(1);
+            draw();
+        };
+        timeSlider.oninput = () => {
+            timeValue.textContent = parseFloat(timeSlider.value).toFixed(1);
+            draw();
+        };
+        stdSlider.oninput = () => {
+            stdValue.textContent = parseFloat(stdSlider.value).toFixed(1);
+            draw();
+        };
+        distSelect.onchange = draw;
+
+        // Simulation parameters
+        const xMin = -4, xMax = 4;
+        const yMin = -1, yMax = 3;
+        const gridSize = 200;
+
+        function toCanvasX(x) {
+            return ((x - xMin) / (xMax - xMin)) * canvas.width;
+        }
+
+        function toCanvasY(y) {
+            return canvas.height - ((y - yMin) / (yMax - yMin)) * canvas.height;
+        }
+
+        function fromCanvasX(canvasX) {
+            return xMin + (canvasX / canvas.width) * (xMax - xMin);
+        }
+
+        function initialDensity(x, type, std = 0.5) {
+            switch(type) {
+                case 'gaussian':
+                    return (1 / (std * Math.sqrt(2 * Math.PI))) * 
+                           Math.exp(-0.5 * Math.pow(x / std, 2));
+                case 'uniform':
+                    return (x >= -1 && x <= 1) ? 0.5 : 0;
+                case 'bimodal':
+                    return 0.5 * ((1 / (0.3 * Math.sqrt(2 * Math.PI))) * Math.exp(-0.5 * Math.pow((x + 1) / 0.3, 2)) +
+                                 (1 / (0.3 * Math.sqrt(2 * Math.PI))) * Math.exp(-0.5 * Math.pow((x - 1) / 0.3, 2)));
+                default:
+                    return 0;
+            }
+        }
+
+        function evolvedDensity(x, t, w, b, type, std) {
+            if (t === 0) {
+                return initialDensity(x, type, std);
+            }
+
+            // ReLU neural ODE closed-form solution
+            if (w === 0) {
+                // Special case: w = 0, flow is constant
+                return initialDensity(x - b * t, type, std);
+            }
+
+            if (w > 0) {
+                // For positive weight
+                const expWt = Math.exp(w * t);
+                const xTransformed = (x - b * t) / expWt;
+                
+                // Check if we're in the active region at initial time
+                if (w * xTransformed + b > 0) {
+                    return initialDensity(xTransformed, type, std) / expWt;
+                } else {
+                    // Particles that hit the inactive region stick at x = -b/w
+                    if (Math.abs(x + b/w) < 0.01) {
+                        // This is a simplified representation of the delta function
+                        return 10; // High value to represent concentration
+                    }
+                    return 0;
+                }
+            } else {
+                // For negative weight
+                const expWt = Math.exp(-Math.abs(w) * t);
+                const xTransformed = (x - b * t) * expWt;
+                
+                if (w * x + b > 0) {
+                    return initialDensity(xTransformed, type, std) * expWt;
+                } else {
+                    return initialDensity(x, type, std);
+                }
+            }
+        }
+
+        function drawGrid() {
+            ctx.strokeStyle = '#e0e0e0';
+            ctx.lineWidth = 1;
+
+            // Vertical grid lines
+            for (let x = Math.ceil(xMin); x <= Math.floor(xMax); x++) {
+                const canvasX = toCanvasX(x);
+                ctx.beginPath();
+                ctx.moveTo(canvasX, 0);
+                ctx.lineTo(canvasX, canvas.height);
+                ctx.stroke();
+            }
+
+            // Horizontal grid lines
+            for (let y = Math.ceil(yMin); y <= Math.floor(yMax); y++) {
+                const canvasY = toCanvasY(y);
+                ctx.beginPath();
+                ctx.moveTo(0, canvasY);
+                ctx.lineTo(canvas.width, canvasY);
+                ctx.stroke();
+            }
+        }
+
+        function drawAxes() {
+            ctx.strokeStyle = '#333';
+            ctx.lineWidth = 2;
+
+            // X-axis
+            const yAxisCanvas = toCanvasY(0);
+            ctx.beginPath();
+            ctx.moveTo(0, yAxisCanvas);
+            ctx.lineTo(canvas.width, yAxisCanvas);
+            ctx.stroke();
+
+            // Y-axis
+            const xAxisCanvas = toCanvasX(0);
+            ctx.beginPath();
+            ctx.moveTo(xAxisCanvas, 0);
+            ctx.lineTo(xAxisCanvas, canvas.height);
+            ctx.stroke();
+
+            // Labels
+            ctx.fillStyle = '#333';
+            ctx.font = '12px Arial';
+            ctx.textAlign = 'center';
+            ctx.fillText('x', canvas.width - 20, yAxisCanvas - 10);
+            ctx.textAlign = 'left';
+            ctx.fillText('ρ(x,t)', xAxisCanvas + 10, 20);
+        }
+
+        function drawDensity() {
+            const w = parseFloat(weightSlider.value);
+            const b = parseFloat(biasSlider.value);
+            const t = parseFloat(timeSlider.value);
+            const type = distSelect.value;
+            const std = parseFloat(stdSlider.value);
+
+            // Draw initial density (lighter color)
+            ctx.strokeStyle = 'rgba(52, 152, 219, 0.3)';
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            let firstPoint = true;
+            for (let i = 0; i <= gridSize; i++) {
+                const x = xMin + (i / gridSize) * (xMax - xMin);
+                const density = initialDensity(x, type, std);
+                const canvasX = toCanvasX(x);
+                const canvasY = toCanvasY(density);
+                
+                if (firstPoint) {
+                    ctx.moveTo(canvasX, canvasY);
+                    firstPoint = false;
+                } else {
+                    ctx.lineTo(canvasX, canvasY);
+                }
+            }
+            ctx.stroke();
+
+            // Draw evolved density (darker color)
+            ctx.strokeStyle = '#e74c3c';
+            ctx.lineWidth = 3;
+            ctx.beginPath();
+            firstPoint = true;
+            for (let i = 0; i <= gridSize; i++) {
+                const x = xMin + (i / gridSize) * (xMax - xMin);
+                const density = evolvedDensity(x, t, w, b, type, std);
+                const canvasX = toCanvasX(x);
+                const canvasY = toCanvasY(density);
+                
+                if (firstPoint) {
+                    ctx.moveTo(canvasX, canvasY);
+                    firstPoint = false;
+                } else {
+                    ctx.lineTo(canvasX, canvasY);
+                }
+            }
+            ctx.stroke();
+
+            // Legend
+            ctx.font = '14px Arial';
+            ctx.fillStyle = 'rgba(52, 152, 219, 0.7)';
+            ctx.fillText('Initial density ρ₀(x)', 20, 30);
+            ctx.fillStyle = '#e74c3c';
+            ctx.fillText(`Evolved density ρ(x,${t.toFixed(1)})`, 20, 50);
+        }
+
+        function draw() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            drawGrid();
+            drawAxes();
+            drawDensity();
+        }
+
+        function animateFlow() {
+            if (isAnimating) {
+                cancelAnimationFrame(animationId);
+                isAnimating = false;
+                return;
+            }
+
+            isAnimating = true;
+            let startTime = 0;
+            const duration = 5000; // 5 seconds
+            const maxTime = 5;
+
+            function frame(currentTime) {
+                if (startTime === 0) startTime = currentTime;
+                const elapsed = currentTime - startTime;
+                const progress = Math.min(elapsed / duration, 1);
+                
+                const t = progress * maxTime;
+                timeSlider.value = t;
+                timeValue.textContent = t.toFixed(1);
+                draw();
+
+                if (progress < 1 && isAnimating) {
+                    animationId = requestAnimationFrame(frame);
+                } else {
+                    isAnimating = false;
+                }
+            }
+
+            animationId = requestAnimationFrame(frame);
+        }
+
+        function reset() {
+            if (isAnimating) {
+                cancelAnimationFrame(animationId);
+                isAnimating = false;
+            }
+            
+            timeSlider.value = 0;
+            timeValue.textContent = '0.0';
+            draw();
+        }
+
+        function exportData() {
+            const w = parseFloat(weightSlider.value);
+            const b = parseFloat(biasSlider.value);
+            const t = parseFloat(timeSlider.value);
+            const type = distSelect.value;
+            const std = parseFloat(stdSlider.value);
+
+            let data = `# ReLU Neural ODE Density Evolution Data
+# Parameters: w=${w}, b=${b}, t=${t}, distribution=${type}, std=${std}
+# x, initial_density, evolved_density
+`;
+
+            for (let i = 0; i <= gridSize; i++) {
+                const x = xMin + (i / gridSize) * (xMax - xMin);
+                const initial = initialDensity(x, type, std);
+                const evolved = evolvedDensity(x, t, w, b, type, std);
+                data += `${x.toFixed(4)}, ${initial.toFixed(6)}, ${evolved.toFixed(6)}\n`;
+            }
+
+            const blob = new Blob([data], { type: 'text/plain' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `relu_ode_data_w${w}_b${b}_t${t}.csv`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        }
+
+        // Initial draw
+        draw();
+    </script>
+</body>
+</html>
