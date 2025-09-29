@@ -1,204 +1,81 @@
 # ReLU Neural ODE Density Flow Simulator
 
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.placeholder.svg)](https://doi.org/10.5281/zenodo.placeholder)
+Interactive demo to explore density evolution under a piecewise-linear flow driven by a single ReLU unit, with **multi-step composition**, **1D/2D modes**, and **population vs. empirical** views.
 
-An interactive web-based simulator for visualizing probability density evolution under the flow of single-neuron ReLU neural ODEs. This tool provides real-time visualization of closed-form solutions for educational and research purposes.
+**Live:** https://antonioalvarezl.github.io/relu-flow-simulator/  
+**Code:** https://github.com/antonioalvarezl/relu-flow-simulator  
+**License:** MIT
 
-## 🎯 Overview
+## Overview
 
-This simulator demonstrates the evolution of probability densities under the dynamics of a simple neural ODE with ReLU activation:
+We visualize solutions of the continuity equation
+∂_t ρ + ∇·(ρ v) = 0,
+with velocity field
+v(x) = w (aᵀ x + b)_+,
+where (·)_+ = max{0,·}, and w,a ∈ ℝᵈ (with d=1 or d=2).  
+A timeline splits the evolution into steps; each step uses its own parameters (w,a,b), and the total map is the composition across steps.
 
-```
-ẋ = max(0, wx + b)
-```
+## Quick start
 
-Where `w` is the weight, `b` is the bias, and `x` represents the state variable. The simulator provides an interactive interface to explore how different parameters affect the density evolution over time.
+- Online: open the live link above.
+- Local: open `index.html` or run:
+    python -m http.server 8000
+  then visit http://localhost:8000.
 
-## 🚀 Quick Start
+## Controls & Options
 
-### Online Version
-Visit the [live simulator](https://antonioalvarezl.github.io/relu-flow-simulator/) to use the tool directly in your browser.
+- Dimension: toggle 1D / 2D.
+- Initial condition:
+  - Standard Gaussian
+  - Uniform [-1,1] in 1D / [-1,1]² in 2D
+- Representation:
+  - Population (analytical density via closed-form pullbacks)
+  - Empirical (particles; choose 10–100 and Resample)
+- Multi-step timeline: add/remove steps; per-step sliders for w, a, b.
+  - Click on the canvas to set the current step’s b (hyperplane position).
+  - Global time slider runs through the whole timeline; Play/Pause and Reset.
+- Visualization:
+  - Vector field overlay (opacity slider; density slider in 2D).
+  - Heatmap resolution (2D).
 
-### Local Installation
-1. Clone this repository:
-   ```bash
-   git clone https://github.com/antonioalvarezl/relu-flow-simulator.git
-   cd relu-flow-simulator
-   ```
+The info panel shows the current step, time-in-step, λ=⟨w,a⟩, and the Jacobian factor where applicable. In 1D, the total mass estimate is displayed.
 
-2. Open `index.html` in your web browser or serve it locally:
-   ```bash
-   python -m http.server 8000  # Python 3
-   # or
-   python -m SimpleHTTPServer 8000  # Python 2
-   ```
+## Mathematical background (closed-form map)
 
-3. Navigate to `http://localhost:8000` in your browser.
+Let H⁺={x: aᵀx+b>0} and H⁻={x: aᵀx+b≤0}.  
+Within a single step of duration t∈[0,1], the density is updated by a pullback:
 
-## 📊 Features
+- Inactive region H⁻: ρ_t(x)=ρ₀(x) (no change).
+- Active region H⁺: define λ=⟨w,a⟩ and A = w aᵀ.
 
-- **Interactive Parameter Control**: Adjust weight (`w`), bias (`b`), and time (`t`) using intuitive sliders
-- **Multiple Initial Distributions**: Choose from Gaussian, uniform, or bimodal initial densities
-- **Real-time Visualization**: See density evolution updated instantly as you modify parameters
-- **Animation Mode**: Watch the temporal evolution of densities with smooth animation
-- **Data Export**: Export simulation data as CSV for further analysis
-- **Responsive Design**: Works on desktop, tablet, and mobile devices
-- **Mathematical Background**: Integrated explanation of the underlying theory
+  - Non-degenerate case λ≠0:
+    e^(−tA)=I+((e^(−λt)−1)/λ) w aᵀ,
+    x₀=e^(−tA)x−(b/λ)(1−e^(−λt)) w,
+    ρ_t(x)=ρ₀(x₀) e^(−λt).
 
-## 🧮 Mathematical Background
+  - Degenerate case λ=0:
+    e^(−tA)=I−t w aᵀ,
+    x₀=(I−t w aᵀ)x − t b w,
+    ρ_t(x)=ρ₀(x₀).
 
-### Neural ODE System
-The system is governed by the differential equation:
-```
-ẋ = max(0, wx + b)
-```
+For multiple steps, the simulator composes these maps in order.  
+In empirical mode, particles follow ẋ = w (aᵀ x + b)_+ with a simple Euler integrator; the population view uses the closed-form pullbacks.
 
-### Closed-Form Solution
-For the density evolution, we have different cases depending on the weight parameter:
+## Usage notes
 
-**Case 1: w > 0 (Exponential Growth in Active Region)**
-- Active region (wx + b > 0): `ρ(x,t) = ρ₀((x - bt)e^(-wt)) · e^(-wt)`
-- Inactive region (wx + b ≤ 0): Particles accumulate at the boundary `x = -b/w`
+- 1D view: line plot of the current density, hyperplane location (vertical dashed line), and a row of arrows showing the vector field.
+- 2D view: density heatmap, vector field arrows, and the current hyperplane (line).
+- Setting b quickly: click or drag on the canvas to update b for the current step.
+- Step timing: the global time [0,1] is split evenly across the number of steps.
 
-**Case 2: w < 0 (Exponential Decay)**
-- Active region: `ρ(x,t) = ρ₀((x - bt)e^(|w|t)) · e^(|w|t)`
-- Inactive region: `ρ(x,t) = ρ₀(x)` (no evolution)
+## Educational applications
 
-**Case 3: w = 0 (Linear Translation)**
-- All points: `ρ(x,t) = ρ₀(x - bt)`
+- Students: build intuition about ReLU-driven flows; see how hyperplanes gate transport.
+- Researchers: sanity-check closed-form behavior and degenerate vs. non-degenerate regimes.
+- Educators: use the timeline to stage examples in lectures; switch to particles for a discrete view.
 
-### Initial Distributions
-The simulator supports three initial distribution types:
+## Credits
 
-1. **Gaussian**: `ρ₀(x) = (1/(σ√(2π))) exp(-x²/(2σ²))`
-2. **Uniform**: `ρ₀(x) = 0.5` for `x ∈ [-1,1]`, `0` otherwise
-3. **Bimodal**: Mixture of two Gaussians centered at `x = ±1`
+If you use this demo in talks or teaching materials, please credit:
 
-## 🎮 Usage Guide
-
-### Basic Controls
-1. **Weight (w)**: Controls the strength and direction of the flow
-   - Positive values: Exponential growth in active region
-   - Negative values: Exponential decay
-   - Zero: Pure translation
-
-2. **Bias (b)**: Shifts the activation threshold
-   - Determines where ReLU switches from inactive to active
-
-3. **Time (t)**: Evolution time parameter
-   - Use slider for precise control
-   - Use "Animate Flow" for temporal visualization
-
-4. **Initial Distribution**: Choose the starting probability density
-   - Gaussian: Standard normal-like distribution
-   - Uniform: Constant density over interval
-   - Bimodal: Two-peaked distribution
-
-### Advanced Features
-- **Animation**: Click "Animate Flow" to see temporal evolution
-- **Reset**: Return to initial state (t = 0)
-- **Export Data**: Download CSV file with density values for analysis
-
-### Interpretation Tips
-- **Blue curve**: Initial density ρ₀(x)
-- **Red curve**: Evolved density ρ(x,t)
-- Watch how the red curve changes as you adjust parameters
-- Notice accumulation effects when particles hit inactive regions
-
-## 📚 Educational Applications
-
-This simulator is designed for:
-
-### Students
-- Visualize abstract concepts in neural ODEs
-- Understand ReLU activation effects on dynamics
-- Explore different parameter regimes interactively
-
-### Researchers
-- Validate theoretical predictions
-- Generate publication-quality visualizations
-- Test hypotheses about density evolution
-
-### Educators
-- Demonstrate neural ODE concepts in lectures
-- Create interactive assignments and exercises
-- Provide hands-on exploration tools
-
-## 🔬 Technical Implementation
-
-### Architecture
-- **Frontend**: Pure HTML5, CSS3, and JavaScript (ES6+)
-- **Visualization**: HTML5 Canvas API for high-performance rendering
-- **Mathematics**: Closed-form analytical solutions (no numerical integration)
-- **Responsive**: CSS Grid and Flexbox for adaptive layouts
-
-### Browser Compatibility
-- Chrome 60+
-- Firefox 55+
-- Safari 12+
-- Edge 79+
-
-### Performance
-- Real-time rendering at 60 FPS
-- Efficient analytical computations
-- Optimized canvas drawing operations
-
-## 📖 Citation
-
-If you use this simulator in your research or educational materials, please cite:
-
-### BibTeX
-```bibtex
-@misc{alvarez2024relu,
-  title={ReLU Neural ODE Density Flow Simulator: An Interactive Tool for Visualizing Probability Density Evolution},
-  author={Alvarez, Antonio},
-  year={2024},
-  url={https://github.com/antonioalvarezl/relu-flow-simulator},
-  note={Interactive web-based simulator for educational and research purposes},
-  doi={10.5281/zenodo.placeholder}
-}
-```
-
-### APA Style
-Alvarez, A. (2024). *ReLU Neural ODE Density Flow Simulator: An Interactive Tool for Visualizing Probability Density Evolution*. GitHub. https://github.com/antonioalvarezl/relu-flow-simulator
-
-### IEEE Style
-A. Alvarez, "ReLU Neural ODE Density Flow Simulator: An Interactive Tool for Visualizing Probability Density Evolution," GitHub, 2024. [Online]. Available: https://github.com/antonioalvarezl/relu-flow-simulator
-
-## 🤝 Contributing
-
-Contributions are welcome! Please feel free to submit issues, feature requests, or pull requests.
-
-### Development Setup
-1. Fork the repository
-2. Create a feature branch: `git checkout -b feature-name`
-3. Make your changes and test thoroughly
-4. Submit a pull request with detailed description
-
-### Areas for Contribution
-- Additional initial distributions
-- Enhanced visualization options
-- Mobile optimization improvements
-- Mathematical extensions (multi-neuron systems)
-- Performance optimizations
-
-## 📄 License
-
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
-
-## 🙏 Acknowledgments
-
-- Inspired by research in neural differential equations
-- Built with modern web technologies for accessibility
-- Designed for the mathematical and machine learning communities
-
-## 📞 Contact
-
-- **Author**: Antonio Alvarez
-- **Repository**: [https://github.com/antonioalvarezl/relu-flow-simulator](https://github.com/antonioalvarezl/relu-flow-simulator)
-- **Issues**: [GitHub Issues](https://github.com/antonioalvarezl/relu-flow-simulator/issues)
-
----
-
-*This tool is designed to make neural ODE concepts accessible and interactive for learners and researchers worldwide.*
+> Antonio Alvarez — ReLU Neural ODE Density Flow Simulator (GitHub/Live link)
