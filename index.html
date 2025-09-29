@@ -16,13 +16,12 @@
     <meta name="author" content="A. Álvarez-López">
     <meta name="description" content="Interactive ReLU Flow Simulator for visualizing density evolution">
     <title>ReLU Flow Simulator - A. Álvarez-López</title>
+
+    <!-- MathJax for LaTeX rendering -->
+    <script defer src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-        
+        * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
             font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
@@ -32,7 +31,6 @@
             align-items: center;
             padding: 20px;
         }
-        
         .container {
             background: white;
             border-radius: 20px;
@@ -41,373 +39,77 @@
             width: 100%;
             padding: 30px;
         }
-        
-        .header {
-            text-align: center;
-            margin-bottom: 30px;
-        }
-        
-        h1 {
-            color: #2d3748;
-            font-size: 28px;
-            margin-bottom: 10px;
-        }
-        
-        .subtitle {
-            color: #718096;
-            font-size: 16px;
-            font-family: 'Courier New', monospace;
-        }
-        
-        .main-content {
-            display: grid;
-            grid-template-columns: 800px 1fr;
-            gap: 30px;
-        }
-        
+        .header { text-align: center; margin-bottom: 30px; }
+        h1 { color: #2d3748; font-size: 28px; margin-bottom: 10px; }
+        .subtitle { color: #2d3748; font-size: 16px; }
+        .main-content { display: grid; grid-template-columns: 800px 1fr; gap: 30px; }
         .canvas-container {
             background: rgba(255, 165, 0, 0.02);
             border-radius: 15px;
             padding: 20px;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            position: relative;
+            display: flex; flex-direction: column; align-items: center; position: relative;
         }
-        
-        .canvas-controls {
-            display: flex;
-            gap: 8px;
-            margin-bottom: 10px;
-        }
-        
+        .canvas-controls { display: flex; gap: 8px; margin-bottom: 10px; }
         .canvas-btn {
-            padding: 5px 10px;
-            background: #4a5568;
-            color: white;
-            border: none;
-            border-radius: 4px;
-            font-size: 10px;
-            cursor: pointer;
-            transition: all 0.3s;
+            padding: 5px 10px; background: #4a5568; color: white; border: none; border-radius: 4px;
+            font-size: 10px; cursor: pointer; transition: all 0.3s;
         }
-        
-        .canvas-btn:hover {
-            background: #2d3748;
-        }
-        
-        .canvas-btn.active {
-            background: #667eea;
-        }
-        
-        .canvas-btn.recording {
-            background: #f56565;
-            animation: pulse 1.5s infinite;
-        }
-        
-        @keyframes pulse {
-            0%, 100% { opacity: 1; }
-            50% { opacity: 0.6; }
-        }
-        
-        canvas {
-            border: 1px solid rgba(0,0,0,0.1);
-            border-radius: 10px;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-            cursor: crosshair;
-        }
-        
-        .controls {
-            background: #f7fafc;
-            border-radius: 15px;
-            padding: 12px;
-            overflow-y: auto;
-            max-height: 800px;
-        }
-        
-        .control-group {
-            margin-bottom: 12px;
-            padding-bottom: 10px;
-            border-bottom: 1px solid #e2e8f0;
-        }
-        
-        .control-group:last-child {
-            border-bottom: none;
-        }
-        
-        .control-group h3 {
-            color: #4a5568;
-            font-size: 11px;
-            font-weight: 600;
-            margin-bottom: 8px;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-        }
-        
-        .control-item {
-            margin-bottom: 8px;
-        }
-        
-        label {
-            display: block;
-            color: #718096;
-            font-size: 10px;
-            margin-bottom: 2px;
-            font-weight: 500;
-        }
-        
-        input[type="range"] {
-            width: 100%;
-            height: 4px;
-            border-radius: 2px;
-            background: #cbd5e0;
-            outline: none;
-            -webkit-appearance: none;
-        }
-        
-        input[type="range"]::-webkit-slider-thumb {
-            -webkit-appearance: none;
-            width: 14px;
-            height: 14px;
-            border-radius: 50%;
-            background: #667eea;
-            cursor: pointer;
-        }
-        
-        input[type="range"]::-moz-range-thumb {
-            width: 14px;
-            height: 14px;
-            border-radius: 50%;
-            background: #667eea;
-            cursor: pointer;
-            border: none;
-        }
-        
-        .value-display {
-            display: inline-block;
-            background: white;
-            padding: 1px 6px;
-            border-radius: 3px;
-            font-size: 10px;
-            font-weight: 600;
-            color: #4a5568;
-            min-width: 35px;
-            text-align: center;
-            margin-left: 6px;
-        }
-        
+        .canvas-btn:hover { background: #2d3748; }
+        .canvas-btn.active { background: #667eea; }
+        .canvas-btn.recording { background: #f56565; animation: pulse 1.5s infinite; }
+        @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.6} }
+        canvas { border: 1px solid rgba(0,0,0,0.1); border-radius: 10px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); cursor: crosshair; }
+        .controls { background: #f7fafc; border-radius: 15px; padding: 12px; overflow-y: auto; max-height: 800px; }
+        .control-group { margin-bottom: 12px; padding-bottom: 10px; border-bottom: 1px solid #e2e8f0; }
+        .control-group:last-child { border-bottom: none; }
+        .control-group h3 { color: #4a5568; font-size: 11px; font-weight: 600; margin-bottom: 8px; text-transform: uppercase; letter-spacing: .5px; }
+        .control-item { margin-bottom: 8px; }
+        label { display: block; color: #718096; font-size: 10px; margin-bottom: 2px; font-weight: 500; }
+        input[type="range"] { width: 100%; height: 4px; border-radius: 2px; background: #cbd5e0; outline: none; -webkit-appearance: none; }
+        input[type="range"]::-webkit-slider-thumb { -webkit-appearance: none; width: 14px; height: 14px; border-radius: 50%; background: #667eea; cursor: pointer; }
+        input[type="range"]::-moz-range-thumb { width: 14px; height: 14px; border-radius: 50%; background: #667eea; cursor: pointer; border: none; }
+        .value-display { display: inline-block; background: white; padding: 1px 6px; border-radius: 3px; font-size: 10px; font-weight: 600; color: #4a5568; min-width: 35px; text-align: center; margin-left: 6px; }
         select {
-            width: 100%;
-            padding: 6px 10px;
-            border: 1px solid #cbd5e0;
-            border-radius: 5px;
-            background: white;
-            color: #4a5568;
-            font-size: 12px;
-            cursor: pointer;
+            width: 100%; padding: 6px 10px; border: 1px solid #cbd5e0; border-radius: 5px; background: white; color: #4a5568; font-size: 12px; cursor: pointer;
         }
-        
-        .button-group {
-            display: flex;
-            gap: 8px;
-            margin-top: 10px;
-        }
-        
-        button {
-            flex: 1;
-            padding: 6px 12px;
-            border: none;
-            border-radius: 5px;
-            font-size: 11px;
-            font-weight: 600;
-            cursor: pointer;
-            transition: all 0.3s;
-        }
-        
-        .btn-primary {
-            background: #667eea;
-            color: white;
-        }
-        
-        .btn-primary:hover {
-            background: #5a67d8;
-        }
-        
-        .btn-secondary {
-            background: #48bb78;
-            color: white;
-        }
-        
-        .btn-secondary:hover {
-            background: #38a169;
-        }
-        
-        .btn-danger {
-            background: #f56565;
-            color: white;
-            padding: 4px 8px;
-            font-size: 10px;
-        }
-        
-        .btn-danger:hover {
-            background: #e53e3e;
-        }
-        
-        .btn-add {
-            background: #4299e1;
-            color: white;
-            width: 100%;
-            margin-top: 10px;
-        }
-        
-        .btn-add:hover {
-            background: #3182ce;
-        }
-        
-        .info-panel {
-            background: #edf2f7;
-            border-radius: 6px;
-            padding: 10px;
-            margin-top: 10px;
-            font-size: 10px;
-            color: #4a5568;
-        }
-        
-        .formula {
-            font-family: 'Courier New', monospace;
-            background: white;
-            padding: 6px;
-            border-radius: 3px;
-            margin-top: 6px;
-            font-size: 10px;
-        }
-        
-        .step-container {
-            background: white;
-            border: 1px solid #e2e8f0;
-            border-radius: 5px;
-            padding: 8px;
-            margin-bottom: 8px;
-            position: relative;
-        }
-        
-        .step-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 8px;
-        }
-        
-        .step-title {
-            font-weight: 600;
-            color: #2d3748;
-            font-size: 11px;
-        }
-        
-        .step-controls {
-            display: flex;
-            flex-direction: column;
-            gap: 6px;
-        }
-        
-        .timeline {
-            background: #edf2f7;
-            border-radius: 5px;
-            padding: 6px;
-            margin-bottom: 8px;
-        }
-        
-        .timeline-bar {
-            height: 30px;
-            background: white;
-            border-radius: 3px;
-            position: relative;
-            overflow: hidden;
-            cursor: pointer;
-        }
-        
+        .button-group { display: flex; gap: 8px; margin-top: 10px; }
+        button { flex: 1; padding: 6px 12px; border: none; border-radius: 5px; font-size: 11px; font-weight: 600; cursor: pointer; transition: all 0.3s; }
+        .btn-primary { background: #667eea; color: white; }
+        .btn-primary:hover { background: #5a67d8; }
+        .btn-secondary { background: #48bb78; color: white; }
+        .btn-secondary:hover { background: #38a169; }
+        .btn-danger { background: #f56565; color: white; padding: 4px 8px; font-size: 10px; }
+        .btn-danger:hover { background: #e53e3e; }
+        .btn-add { background: #4299e1; color: white; width: 100%; margin-top: 10px; }
+        .btn-add:hover { background: #3182ce; }
+        .info-panel { background: #edf2f7; border-radius: 6px; padding: 10px; margin-top: 10px; font-size: 10px; color: #4a5568; }
+        .formula { background: white; padding: 6px; border-radius: 3px; margin-top: 6px; font-size: 12px; }
+        .step-container { background: white; border: 1px solid #e2e8f0; border-radius: 5px; padding: 8px; margin-bottom: 8px; position: relative; }
+        .step-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+        .step-title { font-weight: 600; color: #2d3748; font-size: 11px; }
+        .step-controls { display: flex; flex-direction: column; gap: 6px; }
+        .timeline { background: #edf2f7; border-radius: 5px; padding: 6px; margin-bottom: 8px; }
+        .timeline-bar { height: 30px; background: white; border-radius: 3px; position: relative; overflow: hidden; cursor: pointer; }
         .timeline-segment {
-            position: absolute;
-            height: 100%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: white;
-            font-size: 10px;
-            font-weight: 600;
-            border-right: 1px solid rgba(255,255,255,0.3);
-            transition: opacity 0.3s;
+            position: absolute; height: 100%; display: flex; align-items: center; justify-content: center; color: white; font-size: 10px; font-weight: 600;
+            border-right: 1px solid rgba(255,255,255,0.3); transition: opacity 0.3s;
         }
-        
-        .timeline-segment:hover {
-            opacity: 0.8;
+        .timeline-segment:hover { opacity: 0.8; }
+        .timeline-cursor { position: absolute; width: 3px; height: 100%; background: rgba(0, 0, 0, 0.7); pointer-events: none; z-index: 10; }
+        .dimension-selector { background: #edf2f7; padding: 10px; border-radius: 8px; margin-bottom: 20px; display: flex; gap: 10px; align-items: center; }
+        .dim-button { padding: 8px 20px; border: 2px solid #cbd5e0; background: white; border-radius: 6px; cursor: pointer; transition: all 0.3s; font-weight: 600; }
+        .dim-button.active { background: #667eea; color: white; border-color: #667eea; }
+        .hidden { display: none !important; }
+        .param-input { width: 60px; padding: 2px 4px; border: 1px solid #cbd5e0; border-radius: 3px; background: white; color: #4a5568; font-size: 10px; margin-left: 6px; text-align: center; }
+        .control-item label { display: flex; align-items: center; justify-content: space-between; }
+        .opacity-row { display: grid; grid-template-columns: 1fr auto; align-items: center; gap: 8px; }
+        .opacity-pills { display: flex; gap: 6px; }
+        .pill {
+            padding: 2px 8px; background: #edf2f7; border: 1px solid #cbd5e0; border-radius: 999px; font-size: 10px; cursor: pointer;
         }
-        
-        .timeline-cursor {
-            position: absolute;
-            width: 3px;
-            height: 100%;
-            background: rgba(0, 0, 0, 0.7);
-            pointer-events: none;
-            z-index: 10;
-        }
-        
-        .dimension-selector {
-            background: #edf2f7;
-            padding: 10px;
-            border-radius: 8px;
-            margin-bottom: 20px;
-            display: flex;
-            gap: 10px;
-            align-items: center;
-        }
-        
-        .dim-button {
-            padding: 8px 20px;
-            border: 2px solid #cbd5e0;
-            background: white;
-            border-radius: 6px;
-            cursor: pointer;
-            transition: all 0.3s;
-            font-weight: 600;
-        }
-        
-        .dim-button.active {
-            background: #667eea;
-            color: white;
-            border-color: #667eea;
-        }
-        
-        .hidden {
-            display: none !important;
-        }
-        
-        .param-input {
-            width: 60px;
-            padding: 2px 4px;
-            border: 1px solid #cbd5e0;
-            border-radius: 3px;
-            background: white;
-            color: #4a5568;
-            font-size: 10px;
-            margin-left: 6px;
-            text-align: center;
-        }
-        
-        .control-item label {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-        }
-        
+        .pill:hover { background: #e2e8f0; }
         .interactive-hint {
-            background: #fef5e7;
-            border: 1px solid #f39c12;
-            border-radius: 5px;
-            padding: 6px;
-            margin-bottom: 8px;
-            font-size: 10px;
-            color: #8b6914;
+            background: #fef5e7; border: 1px solid #f39c12; border-radius: 5px; padding: 6px; margin-bottom: 8px; font-size: 10px; color: #8b6914;
         }
     </style>
 </head>
@@ -415,7 +117,10 @@
     <div class="container">
         <div class="header">
             <h1>ReLU Flow Simulator - Multi-Step Evolution</h1>
-            <div class="subtitle">∂ₜρ + ∇·(ρv) = 0, where v(x,θ) = w (a·x + b)_+₊</div>
+            <!-- LaTeX equation -->
+            <div class="subtitle">
+                <div class="formula">$$\partial_t \rho + \nabla\!\cdot(\rho\,v)=0,\qquad v(x;\theta)=w\,\big(a^\top x + b\big)_+$$</div>
+            </div>
             <div style="font-size: 11px; color: #a0a0a0; margin-top: 5px;">
                 Created by A. Álvarez-López • 2025
             </div>
@@ -501,7 +206,7 @@
                     </div>
                     <div class="control-item">
                         <label>Vector Field Opacity <span class="value-display" id="vectorOpacityValue">0.40</span></label>
-                        <input type="range" id="vectorOpacity" min="0.1" max="0.8" step="0.05" value="0.4">
+                        <input type="range" id="vectorOpacity" min="0" max="1" step="0.05" value="0.4">
                     </div>
                 </div>
             </div>
