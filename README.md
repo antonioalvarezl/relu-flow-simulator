@@ -92,10 +92,8 @@ For multiple steps, the simulator composes these maps in order.
 In **empirical** mode, particles follow
 
 $$
-\\dot x = w \\, \\max(0, a^\\top x + b)
+\\dot x = w \\, \\max(0, a^\\top x + b).
 $$
-
-with a simple Euler integrator; the population view uses the closed-form pullbacks.
 
 ## Usage notes
 
