@@ -1,6 +1,6 @@
 # Simple Neural ODE Density Flow Simulator
 
-Interactive demo to explore density evolution under a piecewise-linear flow driven by a single ReLU unit, with **multi-step composition**, **1D/2D modes**, and **population vs. empirical** views.
+Interactive demo to explore density evolution under a piecewise-linear flow driven by a single ReLU unit, with **multi-step composition**, **dimension 1 or 2**, and **population vs. empirical** views.
 
 **Live:** https://antonioalvarezl.github.io/relu-flow-simulator/  
 **Code:** https://github.com/antonioalvarezl/relu-flow-simulator  
