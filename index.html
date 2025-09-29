@@ -1,0 +1,1981 @@
+<!DOCTYPE html>
+<html lang="en">
+<!--
+    ReLU Flow Transport Simulator
+    Author: A. Álvarez-López
+    Copyright (c) 2025 A. Álvarez-López
+    
+    This simulator visualizes density evolution under ReLU flows.
+    Free to use with attribution. Please cite as:
+    Álvarez-López, A. (2025). ReLU Flow Transport Simulator. 
+    https://github.com/antonioalvarezl/relu-flow-simulator
+-->
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="author" content="A. Álvarez-López">
+    <meta name="description" content="Interactive ReLU Flow Transport Simulator for visualizing density evolution">
+    <title>ReLU Flow Transport Simulator - A. Álvarez-López</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+        
+        .container {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            max-width: 1500px;
+            width: 100%;
+            padding: 30px;
+        }
+        
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        
+        h1 {
+            color: #2d3748;
+            font-size: 28px;
+            margin-bottom: 10px;
+        }
+        
+        .subtitle {
+            color: #718096;
+            font-size: 16px;
+            font-family: 'Courier New', monospace;
+        }
+        
+        .main-content {
+            display: grid;
+            grid-template-columns: 800px 1fr;
+            gap: 30px;
+        }
+        
+        .canvas-container {
+            background: rgba(255, 165, 0, 0.02);
+            border-radius: 15px;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            position: relative;
+        }
+        
+        .canvas-controls {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 10px;
+        }
+        
+        .canvas-btn {
+            padding: 5px 10px;
+            background: #4a5568;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            font-size: 10px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        
+        .canvas-btn:hover {
+            background: #2d3748;
+        }
+        
+        .canvas-btn.active {
+            background: #667eea;
+        }
+        
+        .canvas-btn.recording {
+            background: #f56565;
+            animation: pulse 1.5s infinite;
+        }
+        
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.6; }
+        }
+        
+        canvas {
+            border: 1px solid rgba(0,0,0,0.1);
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            cursor: crosshair;
+        }
+        
+        .controls {
+            background: #f7fafc;
+            border-radius: 15px;
+            padding: 12px;
+            overflow-y: auto;
+            max-height: 800px;
+        }
+        
+        .control-group {
+            margin-bottom: 12px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid #e2e8f0;
+        }
+        
+        .control-group:last-child {
+            border-bottom: none;
+        }
+        
+        .control-group h3 {
+            color: #4a5568;
+            font-size: 11px;
+            font-weight: 600;
+            margin-bottom: 8px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        
+        .control-item {
+            margin-bottom: 8px;
+        }
+        
+        label {
+            display: block;
+            color: #718096;
+            font-size: 10px;
+            margin-bottom: 2px;
+            font-weight: 500;
+        }
+        
+        input[type="range"] {
+            width: 100%;
+            height: 4px;
+            border-radius: 2px;
+            background: #cbd5e0;
+            outline: none;
+            -webkit-appearance: none;
+        }
+        
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 14px;
+            height: 14px;
+            border-radius: 50%;
+            background: #667eea;
+            cursor: pointer;
+        }
+        
+        input[type="range"]::-moz-range-thumb {
+            width: 14px;
+            height: 14px;
+            border-radius: 50%;
+            background: #667eea;
+            cursor: pointer;
+            border: none;
+        }
+        
+        .value-display {
+            display: inline-block;
+            background: white;
+            padding: 1px 6px;
+            border-radius: 3px;
+            font-size: 10px;
+            font-weight: 600;
+            color: #4a5568;
+            min-width: 35px;
+            text-align: center;
+            margin-left: 6px;
+        }
+        
+        select {
+            width: 100%;
+            padding: 6px 10px;
+            border: 1px solid #cbd5e0;
+            border-radius: 5px;
+            background: white;
+            color: #4a5568;
+            font-size: 12px;
+            cursor: pointer;
+        }
+        
+        .button-group {
+            display: flex;
+            gap: 8px;
+            margin-top: 10px;
+        }
+        
+        button {
+            flex: 1;
+            padding: 6px 12px;
+            border: none;
+            border-radius: 5px;
+            font-size: 11px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        
+        .btn-primary {
+            background: #667eea;
+            color: white;
+        }
+        
+        .btn-primary:hover {
+            background: #5a67d8;
+        }
+        
+        .btn-secondary {
+            background: #48bb78;
+            color: white;
+        }
+        
+        .btn-secondary:hover {
+            background: #38a169;
+        }
+        
+        .btn-danger {
+            background: #f56565;
+            color: white;
+            padding: 4px 8px;
+            font-size: 10px;
+        }
+        
+        .btn-danger:hover {
+            background: #e53e3e;
+        }
+        
+        .btn-add {
+            background: #4299e1;
+            color: white;
+            width: 100%;
+            margin-top: 10px;
+        }
+        
+        .btn-add:hover {
+            background: #3182ce;
+        }
+        
+        .info-panel {
+            background: #edf2f7;
+            border-radius: 6px;
+            padding: 10px;
+            margin-top: 10px;
+            font-size: 10px;
+            color: #4a5568;
+        }
+        
+        .formula {
+            font-family: 'Courier New', monospace;
+            background: white;
+            padding: 6px;
+            border-radius: 3px;
+            margin-top: 6px;
+            font-size: 10px;
+        }
+        
+        .step-container {
+            background: white;
+            border: 1px solid #e2e8f0;
+            border-radius: 5px;
+            padding: 8px;
+            margin-bottom: 8px;
+            position: relative;
+        }
+        
+        .step-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 8px;
+        }
+        
+        .step-title {
+            font-weight: 600;
+            color: #2d3748;
+            font-size: 11px;
+        }
+        
+        .step-controls {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+        
+        .timeline {
+            background: #edf2f7;
+            border-radius: 5px;
+            padding: 6px;
+            margin-bottom: 8px;
+        }
+        
+        .timeline-bar {
+            height: 30px;
+            background: white;
+            border-radius: 3px;
+            position: relative;
+            overflow: hidden;
+            cursor: pointer;
+        }
+        
+        .timeline-segment {
+            position: absolute;
+            height: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 10px;
+            font-weight: 600;
+            border-right: 1px solid rgba(255,255,255,0.3);
+            transition: opacity 0.3s;
+        }
+        
+        .timeline-segment:hover {
+            opacity: 0.8;
+        }
+        
+        .timeline-cursor {
+            position: absolute;
+            width: 3px;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.7);
+            pointer-events: none;
+            z-index: 10;
+        }
+        
+        .dimension-selector {
+            background: #edf2f7;
+            padding: 10px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+        
+        .dim-button {
+            padding: 8px 20px;
+            border: 2px solid #cbd5e0;
+            background: white;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-weight: 600;
+        }
+        
+        .dim-button.active {
+            background: #667eea;
+            color: white;
+            border-color: #667eea;
+        }
+        
+        .hidden {
+            display: none !important;
+        }
+        
+        .param-input {
+            width: 60px;
+            padding: 2px 4px;
+            border: 1px solid #cbd5e0;
+            border-radius: 3px;
+            background: white;
+            color: #4a5568;
+            font-size: 10px;
+            margin-left: 6px;
+            text-align: center;
+        }
+        
+        .control-item label {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+        
+        .interactive-hint {
+            background: #fef5e7;
+            border: 1px solid #f39c12;
+            border-radius: 5px;
+            padding: 6px;
+            margin-bottom: 8px;
+            font-size: 10px;
+            color: #8b6914;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>ReLU Flow Transport Simulator - Multi-Step Evolution</h1>
+            <div class="subtitle">∂ₜρ + ∇·(ρv) = 0, where v(x,θ) = w·(a^T x + b)₊</div>
+            <div style="font-size: 11px; color: #a0a0a0; margin-top: 5px;">
+                Created by A. Álvarez-López • 2025
+            </div>
+        </div>
+        
+        <div class="dimension-selector">
+            <span style="font-weight: 600; color: #4a5568;">Dimension:</span>
+            <button class="dim-button active" id="dim1D" onclick="setDimension(1)">1D</button>
+            <button class="dim-button" id="dim2D" onclick="setDimension(2)">2D</button>
+        </div>
+        
+        <div class="main-content">
+            <div class="canvas-container">
+                <div class="canvas-controls">
+                    <button class="canvas-btn active" id="toggleVisBtn" onclick="toggleVisualization()">
+                        👁 Hide Overlays
+                    </button>
+                    <button class="canvas-btn" id="saveImageBtn" onclick="saveImage()">
+                        📷 Save Image
+                    </button>
+                    <button class="canvas-btn" id="recordBtn" onclick="toggleRecording()">
+                        🎥 Record Video
+                    </button>
+                </div>
+                <canvas id="flowCanvas" width="800" height="800"></canvas>
+                <div style="text-align: center; margin-top: 8px; font-size: 10px; color: #718096;">
+                    Shift+click to set hyperplane • Drag to pan • Scroll to zoom 
+                </div>
+            </div>
+            
+            <div class="controls">
+                <div class="control-group">
+                    <h3>Initial Condition</h3>
+                    <div class="control-item">
+                        <label>Distribution Type</label>
+                        <select id="initialCondition">
+                            <option value="gaussian">Standard Gaussian</option>
+                            <option value="uniform" id="uniformOption">Uniform [-1,1]</option>
+                        </select>
+                    </div>
+                    <div class="control-item">
+                        <label>Representation</label>
+                        <select id="representation">
+                            <option value="population">Population</option>
+                            <option value="empirical">Empirical</option>
+                        </select>
+                    </div>
+                    <div class="control-item" id="particlesControl" style="display: none;">
+                        <label>Number of Particles</label>
+                        <input type="number" id="numParticles" min="1" max="1000" step="1" value="50" style="width: 100%; padding: 8px 12px; border: 1px solid #cbd5e0; border-radius: 6px; background: white; color: #4a5568; font-size: 14px;">
+                    </div>
+                    <button class="btn-secondary" id="resampleBtn" style="display: none;">↻ Resample</button>
+                </div>
+                
+                <div class="control-group">
+                    <h3>Evolution Timeline</h3>
+                    <div class="timeline">
+                        <div class="timeline-bar" id="timeline">
+                            <div class="timeline-cursor" id="timelineCursor"></div>
+                        </div>
+                    </div>
+                    <div class="button-group">
+                        <button class="btn-primary" id="playBtn">▶ Play</button>
+                        <button class="btn-secondary" id="resetBtn">↺ Reset</button>
+                    </div>
+                    <div class="control-item">
+                        <label>Global Time <span class="value-display" id="globalTimeValue">0.00s</span></label>
+                        <input type="range" id="globalTime" min="0" max="1" step="0.01" value="0">
+                    </div>
+                    <div id="stepsContainer"></div>
+                    <button class="btn-add" id="addStepBtn">+ Add New Step</button>
+                </div>
+                
+                <div class="control-group">
+                    <h3>Visualization Settings</h3>
+                    <div class="control-item" id="resolutionControl">
+                        <label>Heatmap Resolution <span class="value-display" id="resolutionValue">250</span></label>
+                        <input type="range" id="resolution" min="100" max="400" step="10" value="250">
+                    </div>
+                    <div class="control-item" id="vectorDensityControl">
+                        <label>Vector Field Density <span class="value-display" id="vectorDensityValue">20</span></label>
+                        <input type="range" id="vectorDensity" min="10" max="30" step="1" value="20">
+                    </div>
+                    <div class="control-item">
+                        <label>Vector Field Opacity <span class="value-display" id="vectorOpacityValue">0.40</span></label>
+                        <input type="range" id="vectorOpacity" min="0.1" max="0.8" step="0.05" value="0.4">
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        /**
+         * ReLU Flow Transport Simulator
+         * Author: A. Álvarez-López
+         * Copyright (c) 2025 A. Álvarez-López
+         * 
+         * License: MIT License
+         * 
+         * Permission is hereby granted, free of charge, to any person obtaining a copy
+         * of this software to use, copy, modify, merge, publish, distribute, sublicense,
+         * and/or sell copies of the software, subject to the following conditions:
+         * 
+         * The above copyright notice and this permission notice shall be included in all
+         * copies or substantial portions of the software.
+         * 
+         * Attribution: If you use this simulator in academic work or presentations,
+         * please cite as: Álvarez-López, A. (2025). ReLU Flow Transport Simulator.
+         */
+        
+        // Get canvas and context
+        const canvas = document.getElementById('flowCanvas');
+        const ctx = canvas.getContext('2d');
+        
+        // Application state
+        let state = {
+            dimension: 1,
+            initialCondition: 'gaussian',
+            representation: 'population',
+            steps: [
+                { w: [0.5, 0.3], a: [0.7, 0.2], b: 0.0 }
+            ],
+            globalTime: 0,
+            resolution: 250,
+            vectorDensity: 20,
+            vectorOpacity: 0.4,
+            isPlaying: false,
+            animationId: null,
+            mouseDown: false,
+            numParticles: 50,
+            particles: [],
+            // Zoom and pan state
+            zoom: 1,
+            panX: 0,
+            panY: 0,
+            isPanning: false,
+            lastMouseX: 0,
+            lastMouseY: 0,
+            isSettingB: false,
+            // Visual toggles
+            showHyperplane: true,
+            showVectorField: true,
+            // Recording state
+            isRecording: false,
+            mediaRecorder: null,
+            recordedChunks: []
+        };
+        
+        // Mathematical functions
+        function relu(x) {
+            return Math.max(0, x);
+        }
+        
+        function dot(v1, v2) {
+            if (state.dimension === 1) {
+                return v1[0] * v2[0];
+            }
+            return v1[0] * v2[0] + v1[1] * v2[1];
+        }
+        
+        // Initial density functions
+        function initialDensity(x, y) {
+            if (state.dimension === 1) {
+                if (state.initialCondition === 'gaussian') {
+                    return Math.exp(-(x*x) / 2) / Math.sqrt(2 * Math.PI);
+                } else {
+                    return (Math.abs(x) <= 1) ? 0.5 : 0;
+                }
+            } else {
+                if (state.initialCondition === 'gaussian') {
+                    return Math.exp(-(x*x + y*y) / 2) / (2 * Math.PI);
+                } else {
+                    return (Math.abs(x) <= 1 && Math.abs(y) <= 1) ? 0.25 : 0;
+                }
+            }
+        }
+        
+        // Viridis colormap
+        function viridis(t) {
+            t = Math.max(0, Math.min(1, t));
+            
+            let r, g, b;
+            
+            if (t < 0.25) {
+                const s = t * 4;
+                r = 68 + s * 4;
+                g = 1 + s * 34;
+                b = 84 + s * 51;
+            } else if (t < 0.5) {
+                const s = (t - 0.25) * 4;
+                r = 72 - s * 8;
+                g = 35 + s * 32;
+                b = 135 + s * 6;
+            } else if (t < 0.75) {
+                const s = (t - 0.5) * 4;
+                r = 64 - s * 23;
+                g = 67 + s * 53;
+                b = 141 - s * 1;
+            } else {
+                const s = (t - 0.75) * 4;
+                r = 41 + s * 212;
+                g = 120 + s * 111;
+                b = 140 - s * 104;
+            }
+            
+            return `rgb(${Math.round(r)}, ${Math.round(g)}, ${Math.round(b)})`;
+        }
+        
+        // Get current step and time within step from global time
+        function getStepFromGlobalTime(globalTime) {
+            const numSteps = state.steps.length;
+            const totalTime = numSteps; 
+            const scaledTime = globalTime * totalTime;
+            
+            const stepIndex = Math.floor(scaledTime);
+            const timeInStep = scaledTime - stepIndex;
+            
+            if (stepIndex >= numSteps) {
+                return { stepIndex: numSteps - 1, timeInStep: 1 };
+            }
+            
+            return { stepIndex: stepIndex, timeInStep: timeInStep };
+        }
+        
+        // Apply evolution for single step - EXACT FORMULA IMPLEMENTATION
+        function applyStepEvolution(x, y, prevDensityFunc, step, t) {
+            const coords = state.dimension === 1 ? [x, 0] : [x, y];
+            const stepA = state.dimension === 1 ? [step.a[0], 0] : step.a;
+            const stepW = state.dimension === 1 ? [step.w[0], 0] : step.w;
+            
+            // Check if x is in H^-: a^T x + b ≤ 0
+            const s_x = dot(stepA, coords) + step.b;
+            
+            if (s_x <= 0) {
+                // Point is in H^-, density remains unchanged
+                return prevDensityFunc(x, y);
+            }
+            
+            // Point is in H^+, compute pullback
+            const lambda = dot(stepA, stepW);
+            
+            let x0, y0;
+            
+            if (Math.abs(lambda) > 1e-10) {
+                // Non-degenerate case: λ ≠ 0
+                // A_t(x) = e^{-tA}x - (b/λ)(1 - e^{-λt})w
+                // where e^{-tA} = I + ((e^{-λt} - 1)/λ) * wa^T
+                
+                const exp_lambda_t = Math.exp(-lambda * t);
+                
+                // Compute e^{-tA}x
+                const coeff = (exp_lambda_t - 1) / lambda;
+                const aTx = dot(stepA, coords);
+                
+                const etA_x = [
+                    coords[0] + coeff * stepW[0] * aTx,
+                    state.dimension === 1 ? 0 : coords[1] + coeff * stepW[1] * aTx
+                ];
+                
+                // Compute translation term: -(b/λ)(1 - e^{-λt})w
+                const translation_coeff = (step.b / lambda) * (1 - exp_lambda_t);
+                
+                x0 = etA_x[0] - translation_coeff * stepW[0];
+                y0 = etA_x[1] - translation_coeff * stepW[1];
+                
+                // Return with jacobian
+                return prevDensityFunc(x0, y0) * exp_lambda_t;
+                
+            } else {
+                // Degenerate case: λ = 0
+                // B_t(x) = e^{-tA}x - tb e^{-tA}w
+                // Since λ = 0: e^{-tA} = I - tA = I - t*wa^T
+                
+                const aTx = dot(stepA, coords);
+                
+                // Compute (I - t*wa^T)x
+                const etA_x = [
+                    coords[0] - t * stepW[0] * aTx,
+                    state.dimension === 1 ? 0 : coords[1] - t * stepW[1] * aTx
+                ];
+                
+                // Compute (I - t*wa^T)(tb*w) = tb*w - t^2*b*(wa^T)w = tb*w (since a^Tw = 0)
+                x0 = etA_x[0] - t * step.b * stepW[0];
+                y0 = etA_x[1] - t * step.b * stepW[1];
+                
+                // No jacobian in degenerate case
+                return prevDensityFunc(x0, y0);
+            }
+        }
+        
+        // Compute density at location
+        function densityAtLocation(x, y) {
+            const { stepIndex, timeInStep } = getStepFromGlobalTime(state.globalTime);
+            
+            // Build up the density function step by step
+            let currentDensityFunc = (px, py) => initialDensity(px, py);
+            
+            // Apply completed steps
+            for (let i = 0; i < stepIndex; i++) {
+                const step = state.steps[i];
+                const prevFunc = currentDensityFunc;
+                currentDensityFunc = (px, py) => applyStepEvolution(px, py, prevFunc, step, 1.0);
+            }
+            
+            // Apply partial current step
+            if (stepIndex < state.steps.length && timeInStep > 0) {
+                const step = state.steps[stepIndex];
+                const prevFunc = currentDensityFunc;
+                currentDensityFunc = (px, py) => applyStepEvolution(px, py, prevFunc, step, timeInStep);
+            }
+            
+            return currentDensityFunc(x, y);
+        }
+        
+        // Vector field function
+        function vectorField(x, y) {
+            const { stepIndex } = getStepFromGlobalTime(state.globalTime);
+            if (stepIndex >= state.steps.length) return [0, 0];
+            
+            const step = state.steps[stepIndex];
+            const coords = state.dimension === 1 ? [x, 0] : [x, y];
+            const stepA = state.dimension === 1 ? [step.a[0], 0] : step.a;
+            const stepW = state.dimension === 1 ? [step.w[0], 0] : step.w;
+            
+            // v(x) = w * (a^T x + b)_+
+            const activation = relu(dot(stepA, coords) + step.b);
+            return [stepW[0] * activation, stepW[1] * activation];
+        }
+        
+        // Particle system functions
+        function initializeParticles() {
+            state.particles = [];
+            
+            if (state.dimension === 1) {
+                for (let i = 0; i < state.numParticles; i++) {
+                    let x;
+                    if (state.initialCondition === 'gaussian') {
+                        // Box-Muller transform for Gaussian sampling
+                        const u1 = Math.random();
+                        const u2 = Math.random();
+                        x = Math.sqrt(-2 * Math.log(u1)) * Math.cos(2 * Math.PI * u2);
+                    } else {
+                        // Uniform distribution [-1, 1]
+                        x = (Math.random() - 0.5) * 2;
+                    }
+                    state.particles.push({ x: x, y: 0 });
+                }
+            } else {
+                for (let i = 0; i < state.numParticles; i++) {
+                    let x, y;
+                    if (state.initialCondition === 'gaussian') {
+                        // Box-Muller transform for 2D Gaussian
+                        const u1 = Math.random();
+                        const u2 = Math.random();
+                        const u3 = Math.random();
+                        const u4 = Math.random();
+                        x = Math.sqrt(-2 * Math.log(u1)) * Math.cos(2 * Math.PI * u2);
+                        y = Math.sqrt(-2 * Math.log(u3)) * Math.cos(2 * Math.PI * u4);
+                    } else {
+                        // Uniform distribution [-1, 1]²
+                        x = (Math.random() - 0.5) * 2;
+                        y = (Math.random() - 0.5) * 2;
+                    }
+                    state.particles.push({ x: x, y: y });
+                }
+            }
+        }
+        
+        // Evolve particles according to the flow
+        function getEvolvedParticles() {
+            const evolvedParticles = [];
+            const { stepIndex, timeInStep } = getStepFromGlobalTime(state.globalTime);
+            
+            for (const particle of state.particles) {
+                let currentX = particle.x;
+                let currentY = particle.y;
+                
+                // Apply completed steps
+                for (let i = 0; i < stepIndex; i++) {
+                    const step = state.steps[i];
+                    const evolved = evolveParticle(currentX, currentY, step, 1.0);
+                    currentX = evolved.x;
+                    currentY = evolved.y;
+                }
+                
+                // Apply partial current step
+                if (stepIndex < state.steps.length && timeInStep > 0) {
+                    const step = state.steps[stepIndex];
+                    const evolved = evolveParticle(currentX, currentY, step, timeInStep);
+                    currentX = evolved.x;
+                    currentY = evolved.y;
+                }
+                
+                evolvedParticles.push({ x: currentX, y: currentY });
+            }
+            
+            return evolvedParticles;
+        }
+        
+        // Evolve a single particle for a given step and time
+        function evolveParticle(x, y, step, t) {
+            const coords = state.dimension === 1 ? [x, 0] : [x, y];
+            const stepA = state.dimension === 1 ? [step.a[0], 0] : step.a;
+            const stepW = state.dimension === 1 ? [step.w[0], 0] : step.w;
+            
+            // For particles, we integrate the ODE: dx/dt = v(x) = w * (a^T x + b)_+
+            // Using Euler method with small time steps for accuracy
+            const numSteps = 50; // Number of integration steps
+            const dt = t / numSteps;
+            
+            let currentX = coords[0];
+            let currentY = coords[1];
+            
+            for (let i = 0; i < numSteps; i++) {
+                const currentCoords = [currentX, currentY];
+                const activation = relu(dot(stepA, currentCoords) + step.b);
+                
+                currentX += stepW[0] * activation * dt;
+                currentY += stepW[1] * activation * dt;
+            }
+            
+            return { x: currentX, y: currentY };
+        }
+        
+        // Create step HTML with text inputs
+        function createStepHTML(index) {
+            const step = state.steps[index];
+            
+            if (state.dimension === 1) {
+                return `
+                    <div class="step-container" data-index="${index}">
+                        <div class="step-header">
+                            <span class="step-title">Step ${index + 1}</span>
+                            <button class="btn-danger" onclick="removeStep(${index})">Remove</button>
+                        </div>
+                        <div class="step-controls">
+                            <div class="control-item">
+                                <label>w <input type="number" class="param-input" step="0.1" value="${step.w[0]}" 
+                                       onchange="updateStepParamDirect(${index}, 'w', 0, this.value)"
+                                       id="w-input-${index}-0"></label>
+                                <input type="range" min="-1" max="1" step="0.1" value="${step.w[0]}" 
+                                       oninput="updateStepParam(${index}, 'w', 0, this.value)">
+                            </div>
+                            <div class="control-item">
+                                <label>a <input type="number" class="param-input" step="0.1" value="${step.a[0]}" 
+                                       onchange="updateStepParamDirect(${index}, 'a', 0, this.value)"
+                                       id="a-input-${index}-0"></label>
+                                <input type="range" min="-1" max="1" step="0.1" value="${step.a[0]}" 
+                                       oninput="updateStepParam(${index}, 'a', 0, this.value)">
+                            </div>
+                            <div class="control-item">
+                                <label>b <input type="number" class="param-input" step="0.1" value="${step.b}" 
+                                       onchange="updateStepParamDirect(${index}, 'b', null, this.value)"
+                                       id="b-input-${index}"></label>
+                                <input type="range" min="-2" max="2" step="0.1" value="${step.b}" 
+                                       oninput="updateStepParam(${index}, 'b', null, this.value)" 
+                                       id="b-slider-${index}">
+                            </div>
+                        </div>
+                    </div>
+                `;
+            } else {
+                return `
+                    <div class="step-container" data-index="${index}">
+                        <div class="step-header">
+                            <span class="step-title">Step ${index + 1}</span>
+                            <button class="btn-danger" onclick="removeStep(${index})">Remove</button>
+                        </div>
+                        <div class="step-controls">
+                            <div class="control-item">
+                                <label>w₁ <input type="number" class="param-input" step="0.1" value="${step.w[0]}" 
+                                       onchange="updateStepParamDirect(${index}, 'w', 0, this.value)"
+                                       id="w-input-${index}-0"></label>
+                                <input type="range" min="-1" max="1" step="0.1" value="${step.w[0]}" 
+                                       oninput="updateStepParam(${index}, 'w', 0, this.value)">
+                            </div>
+                            <div class="control-item">
+                                <label>w₂ <input type="number" class="param-input" step="0.1" value="${step.w[1]}" 
+                                       onchange="updateStepParamDirect(${index}, 'w', 1, this.value)"
+                                       id="w-input-${index}-1"></label>
+                                <input type="range" min="-1" max="1" step="0.1" value="${step.w[1]}" 
+                                       oninput="updateStepParam(${index}, 'w', 1, this.value)">
+                            </div>
+                            <div class="control-item">
+                                <label>a₁ <input type="number" class="param-input" step="0.1" value="${step.a[0]}" 
+                                       onchange="updateStepParamDirect(${index}, 'a', 0, this.value)"
+                                       id="a-input-${index}-0"></label>
+                                <input type="range" min="-1" max="1" step="0.1" value="${step.a[0]}" 
+                                       oninput="updateStepParam(${index}, 'a', 0, this.value)">
+                            </div>
+                            <div class="control-item">
+                                <label>a₂ <input type="number" class="param-input" step="0.1" value="${step.a[1]}" 
+                                       onchange="updateStepParamDirect(${index}, 'a', 1, this.value)"
+                                       id="a-input-${index}-1"></label>
+                                <input type="range" min="-1" max="1" step="0.1" value="${step.a[1]}" 
+                                       oninput="updateStepParam(${index}, 'a', 1, this.value)">
+                            </div>
+                            <div class="control-item">
+                                <label>b <input type="number" class="param-input" step="0.1" value="${step.b}" 
+                                       onchange="updateStepParamDirect(${index}, 'b', null, this.value)"
+                                       id="b-input-${index}"></label>
+                                <input type="range" min="-2" max="2" step="0.1" value="${step.b}" 
+                                       oninput="updateStepParam(${index}, 'b', null, this.value)" 
+                                       id="b-slider-${index}">
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }
+        }
+        
+        // Update timeline visualization
+        function updateTimeline() {
+            const timeline = document.getElementById('timeline');
+            const numSteps = state.steps.length;
+            
+            let html = '';
+            const colors = ['#667eea', '#48bb78', '#f56565', '#4299e1', '#ed8936'];
+            
+            for (let i = 0; i < numSteps; i++) {
+                const width = (100 / numSteps);
+                const left = i * width;
+                const color = colors[i % colors.length];
+                html += `<div class="timeline-segment" style="left: ${left}%; width: ${width}%; background: ${color};" 
+                         onclick="jumpToStep(${i})">
+                    Step ${i + 1}
+                </div>`;
+            }
+            
+            timeline.innerHTML = html + '<div class="timeline-cursor" id="timelineCursor"></div>';
+            updateTimelineCursor();
+        }
+        
+        // Update timeline cursor position
+        function updateTimelineCursor() {
+            const cursor = document.getElementById('timelineCursor');
+            if (cursor) {
+                cursor.style.left = `${state.globalTime * 100}%`;
+            }
+        }
+        
+        // Jump to step
+        function jumpToStep(stepIndex) {
+            const numSteps = state.steps.length;
+            state.globalTime = (stepIndex + 0.5) / numSteps;
+            document.getElementById('globalTime').value = state.globalTime;
+            const totalSeconds = state.globalTime * numSteps;
+            document.getElementById('globalTimeValue').textContent = totalSeconds.toFixed(2) + 's';
+            updateTimelineCursor();
+            draw();
+        }
+        
+        // Render all steps
+        function renderSteps() {
+            const container = document.getElementById('stepsContainer');
+            container.innerHTML = state.steps.map((_, i) => createStepHTML(i)).join('');
+            updateTimeline();
+            draw();
+        }
+        
+        // Add new step
+        function addStep() {
+            // Generate random parameters in the range [-1, 1] for w and a, [-2, 2] for b
+            const randomValue = (min, max) => Math.round((Math.random() * (max - min) + min) * 10) / 10;
+            
+            state.steps.push({
+                w: [randomValue(-1, 1), randomValue(-1, 1)],
+                a: [randomValue(-1, 1), randomValue(-1, 1)],
+                b: randomValue(-2, 2)
+            });
+            renderSteps();
+        }
+        
+        // Remove step
+        function removeStep(index) {
+            if (state.steps.length > 1) {
+                state.steps.splice(index, 1);
+                renderSteps();
+            }
+        }
+        
+        // Update step parameter from slider
+        function updateStepParam(stepIndex, param, subIndex, value) {
+            const numValue = parseFloat(value);
+            
+            if (param === 'w' || param === 'a') {
+                state.steps[stepIndex][param][subIndex] = numValue;
+                // Update corresponding text input
+                const inputField = document.getElementById(`${param}-input-${stepIndex}-${subIndex}`);
+                if (inputField) {
+                    inputField.value = numValue;
+                }
+            } else {
+                state.steps[stepIndex][param] = numValue;
+                // Update corresponding text input
+                const inputField = document.getElementById(`b-input-${stepIndex}`);
+                if (inputField) {
+                    inputField.value = numValue;
+                }
+            }
+            
+            draw();
+        }
+        
+        // Update step parameter from text input (allows arbitrary values)
+        function updateStepParamDirect(stepIndex, param, subIndex, value) {
+            const numValue = parseFloat(value);
+            
+            if (isNaN(numValue)) return;
+            
+            if (param === 'w' || param === 'a') {
+                state.steps[stepIndex][param][subIndex] = numValue;
+                // Update corresponding slider if within range
+                const slider = document.querySelector(`[data-index="${stepIndex}"] input[type="range"][oninput*="${param}, ${subIndex}"]`);
+                if (slider) {
+                    if (numValue >= -1 && numValue <= 1) {
+                        slider.value = numValue;
+                    }
+                }
+            } else {
+                state.steps[stepIndex][param] = numValue;
+                // Update corresponding slider if within range
+                const slider = document.getElementById(`b-slider-${stepIndex}`);
+                if (slider) {
+                    if (numValue >= -2 && numValue <= 2) {
+                        slider.value = numValue;
+                    }
+                }
+            }
+            
+            draw();
+        }
+        
+        // Set dimension
+        function setDimension(dim) {
+            state.dimension = dim;
+            document.getElementById('dim1D').classList.toggle('active', dim === 1);
+            document.getElementById('dim2D').classList.toggle('active', dim === 2);
+            document.getElementById('uniformOption').textContent = 
+                dim === 1 ? 'Uniform [-1,1]' : 'Uniform [-1,1]²';
+            
+            if (dim === 1) {
+                canvas.height = 400;
+                document.getElementById('resolutionControl').classList.add('hidden');
+                document.getElementById('vectorDensityControl').classList.add('hidden');
+            } else {
+                canvas.height = 800;
+                document.getElementById('resolutionControl').classList.remove('hidden');
+                document.getElementById('vectorDensityControl').classList.remove('hidden');
+            }
+            
+            renderSteps();
+            draw();
+        }
+        
+        // Drawing function for 1D
+        function draw1D() {
+            ctx.fillStyle = 'rgba(252, 252, 252, 1)';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            
+            const padding = 50;
+            const graphWidth = canvas.width - 2 * padding;
+            const graphHeight = canvas.height - 2 * padding;
+            
+            const xMin = -3 / state.zoom - state.panX;
+            const xMax = 3 / state.zoom - state.panX;
+            const xScale = graphWidth / (xMax - xMin);
+            
+            // Draw axes
+            ctx.strokeStyle = 'rgba(0, 0, 0, 0.3)';
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.moveTo(padding, canvas.height - padding);
+            ctx.lineTo(canvas.width - padding, canvas.height - padding);
+            ctx.moveTo(padding, padding);
+            ctx.lineTo(padding, canvas.height - padding);
+            ctx.stroke();
+            
+            // Draw grid - adjust for zoom
+            ctx.strokeStyle = 'rgba(0, 0, 0, 0.1)';
+            ctx.lineWidth = 1;
+            const gridStep = state.zoom > 2 ? 0.5 : 1;
+            for (let x = Math.ceil(xMin / gridStep) * gridStep; x <= xMax; x += gridStep) {
+                const xPos = padding + (x - xMin) * xScale;
+                if (xPos > padding && xPos < canvas.width - padding) {
+                    ctx.beginPath();
+                    ctx.moveTo(xPos, padding);
+                    ctx.lineTo(xPos, canvas.height - padding);
+                    ctx.stroke();
+                    
+                    // Draw grid labels
+                    if (Math.abs(x % 1) < 0.01) {
+                        ctx.fillStyle = 'rgba(0, 0, 0, 0.6)';
+                        ctx.font = '11px Arial';
+                        ctx.textAlign = 'center';
+                        ctx.fillText(x.toFixed(0), xPos, canvas.height - padding + 20);
+                    }
+                }
+            }
+            
+            let totalMass = 0;
+            
+            if (state.representation === 'population') {
+                // Calculate density with fixed vertical scale for better visualization
+                const numPoints = 500;
+                const densityPoints = [];
+                const dx = (xMax - xMin) / numPoints;
+                
+                // Use fixed scale based on initial condition
+                const maxDisplayDensity = state.initialCondition === 'gaussian' ? 0.5 : 0.6;
+                
+                for (let i = 0; i < numPoints; i++) {
+                    const x = xMin + (i / numPoints) * (xMax - xMin);
+                    const density = densityAtLocation(x, 0);
+                    densityPoints.push({x: x, density: density});
+                    totalMass += density * dx;
+                }
+                
+                // Draw density as filled area
+                ctx.beginPath();
+                ctx.moveTo(padding, canvas.height - padding);
+                
+                for (let i = 0; i < densityPoints.length; i++) {
+                    const point = densityPoints[i];
+                    const xPos = padding + (point.x - xMin) * xScale;
+                    const yPos = canvas.height - padding - (point.density / maxDisplayDensity) * graphHeight * 0.8;
+                    ctx.lineTo(xPos, yPos);
+                }
+                
+                ctx.lineTo(canvas.width - padding, canvas.height - padding);
+                ctx.closePath();
+                
+                const gradient = ctx.createLinearGradient(0, canvas.height - padding, 0, padding);
+                gradient.addColorStop(0, 'rgba(102, 126, 234, 0.1)');
+                gradient.addColorStop(0.5, 'rgba(102, 126, 234, 0.3)');
+                gradient.addColorStop(1, 'rgba(102, 126, 234, 0.5)');
+                ctx.fillStyle = gradient;
+                ctx.fill();
+                
+                // Draw density line
+                ctx.strokeStyle = 'rgba(102, 126, 234, 0.8)';
+                ctx.lineWidth = 2.5;
+                ctx.beginPath();
+                for (let i = 0; i < densityPoints.length; i++) {
+                    const point = densityPoints[i];
+                    const xPos = padding + (point.x - xMin) * xScale;
+                    const yPos = canvas.height - padding - (point.density / maxDisplayDensity) * graphHeight * 0.8;
+                    if (i === 0) {
+                        ctx.moveTo(xPos, yPos);
+                    } else {
+                        ctx.lineTo(xPos, yPos);
+                    }
+                }
+                ctx.stroke();
+            } else {
+                // Empirical mode: draw particles
+                if (state.particles.length === 0) {
+                    initializeParticles();
+                }
+                
+                const evolvedParticles = getEvolvedParticles();
+                const particleMass = 1.0 / state.numParticles;
+                
+                // Draw particles as vertical lines/bars
+                ctx.strokeStyle = 'rgba(102, 126, 234, 0.8)';
+                ctx.fillStyle = 'rgba(102, 126, 234, 0.6)';
+                ctx.lineWidth = 2;
+                
+                for (const particle of evolvedParticles) {
+                    const xPos = padding + (particle.x - xMin) * xScale;
+                    const barHeight = graphHeight * 0.4 * particleMass * state.numParticles; // Scale bar height
+                    
+                    ctx.beginPath();
+                    ctx.moveTo(xPos, canvas.height - padding);
+                    ctx.lineTo(xPos, canvas.height - padding - barHeight);
+                    ctx.stroke();
+                    
+                    // Draw a circle at the top of each bar
+                    ctx.beginPath();
+                    ctx.arc(xPos, canvas.height - padding - barHeight, 3, 0, 2 * Math.PI);
+                    ctx.fill();
+                }
+                
+                totalMass = 1.0; // Empirical always has mass 1
+            }
+            
+            // Draw hyperplane (point) for current step - FIXED position regardless of zoom/pan
+            if (state.showHyperplane) {
+                const { stepIndex } = getStepFromGlobalTime(state.globalTime);
+                if (stepIndex < state.steps.length) {
+                    const step = state.steps[stepIndex];
+                    if (Math.abs(step.a[0]) > 1e-10) {
+                        const hyperplaneX = -step.b / step.a[0];
+                        const xPos = padding + (hyperplaneX - xMin) * xScale;
+                        
+                        // Only draw if visible
+                        if (xPos >= padding && xPos <= canvas.width - padding) {
+                            ctx.strokeStyle = 'rgba(255, 0, 0, 0.5)';
+                            ctx.lineWidth = 2;
+                            ctx.setLineDash([5, 5]);
+                            ctx.beginPath();
+                            ctx.moveTo(xPos, padding);
+                            ctx.lineTo(xPos, canvas.height - padding);
+                            ctx.stroke();
+                            ctx.setLineDash([]);
+                            
+                            ctx.fillStyle = 'rgba(255, 0, 0, 0.8)';
+                            ctx.beginPath();
+                            ctx.arc(xPos, canvas.height - padding, 6, 0, 2 * Math.PI);
+                            ctx.fill();
+                        }
+                    }
+                }
+            }
+            
+            // Draw vector field
+            if (state.showVectorField) {
+                const arrowSpacing = Math.max(8, Math.floor(15 / state.zoom));
+                for (let i = 0; i <= arrowSpacing; i++) {
+                    const x = xMin + (i / arrowSpacing) * (xMax - xMin);
+                    const [vx, ] = vectorField(x, 0);
+                    
+                    if (Math.abs(vx) > 0.001) {
+                        const xPos = padding + (x - xMin) * xScale;
+                        const yBase = canvas.height - padding + 20;
+                        const arrowScale = Math.min(30, 20 * Math.abs(vx));
+                        const endX = xPos + Math.sign(vx) * arrowScale;
+                        
+                        ctx.strokeStyle = `rgba(255, 99, 71, ${state.vectorOpacity})`;
+                        ctx.lineWidth = 2;
+                        ctx.beginPath();
+                        ctx.moveTo(xPos, yBase);
+                        ctx.lineTo(endX, yBase);
+                        ctx.stroke();
+                        
+                        ctx.beginPath();
+                        if (vx > 0) {
+                            ctx.moveTo(endX, yBase);
+                            ctx.lineTo(endX - 5, yBase - 3);
+                            ctx.moveTo(endX, yBase);
+                            ctx.lineTo(endX - 5, yBase + 3);
+                        } else {
+                            ctx.moveTo(endX, yBase);
+                            ctx.lineTo(endX + 5, yBase - 3);
+                            ctx.moveTo(endX, yBase);
+                            ctx.lineTo(endX + 5, yBase + 3);
+                        }
+                        ctx.stroke();
+                    }
+                }
+            }
+            
+            return totalMass;
+        }
+        
+        // Drawing function for 2D
+        function draw2D() {
+            ctx.fillStyle = 'rgba(252, 252, 252, 1)';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            
+            const scale = 160 * state.zoom;
+            const centerX = canvas.width / 2;
+            const centerY = canvas.height / 2;
+            
+            function toCanvas(x, y) {
+                return [
+                    centerX + (x + state.panX) * scale, 
+                    centerY - (y + state.panY) * scale
+                ];
+            }
+            
+            function fromCanvas(cx, cy) {
+                return [
+                    (cx - centerX) / scale - state.panX,
+                    -(cy - centerY) / scale - state.panY
+                ];
+            }
+            
+            // Draw grid lines
+            ctx.strokeStyle = 'rgba(0, 0, 0, 0.1)';
+            ctx.lineWidth = 1;
+            const gridStep = state.zoom > 2 ? 0.5 : 1;
+            const viewRange = 5 / state.zoom;
+            
+            for (let x = Math.ceil((-viewRange - state.panX) / gridStep) * gridStep; 
+                 x <= viewRange - state.panX; x += gridStep) {
+                const [cx, ] = toCanvas(x, 0);
+                if (cx > 0 && cx < canvas.width) {
+                    ctx.beginPath();
+                    ctx.moveTo(cx, 0);
+                    ctx.lineTo(cx, canvas.height);
+                    ctx.stroke();
+                }
+            }
+            
+            for (let y = Math.ceil((-viewRange - state.panY) / gridStep) * gridStep; 
+                 y <= viewRange - state.panY; y += gridStep) {
+                const [, cy] = toCanvas(0, y);
+                if (cy > 0 && cy < canvas.height) {
+                    ctx.beginPath();
+                    ctx.moveTo(0, cy);
+                    ctx.lineTo(canvas.width, cy);
+                    ctx.stroke();
+                }
+            }
+            
+            // Draw axes
+            ctx.strokeStyle = 'rgba(0, 0, 0, 0.3)';
+            ctx.lineWidth = 2;
+            const [axisX, ] = toCanvas(0, 0);
+            const [, axisY] = toCanvas(0, 0);
+            
+            ctx.beginPath();
+            ctx.moveTo(0, axisY);
+            ctx.lineTo(canvas.width, axisY);
+            ctx.moveTo(axisX, 0);
+            ctx.lineTo(axisX, canvas.height);
+            ctx.stroke();
+            
+            if (state.representation === 'population') {
+                // Draw heatmap
+                const resolution = state.resolution;
+                const pixelSize = canvas.width / resolution;
+                
+                let maxDensity = 0;
+                const densityData = [];
+                
+                // First pass: calculate all densities and find max
+                for (let i = 0; i < resolution; i++) {
+                    densityData[i] = [];
+                    for (let j = 0; j < resolution; j++) {
+                        const x = (i / resolution - 0.5) * 5;
+                        const y = (0.5 - j / resolution) * 5;
+                        const d = densityAtLocation(x, y);
+                        densityData[i][j] = d;
+                        if (d > maxDensity) maxDensity = d;
+                    }
+                }
+                
+                // Use fixed scale for better visualization
+                const maxDisplayDensity = state.initialCondition === 'gaussian' ? 0.2 : 0.3;
+                
+                // Draw density pixels
+                for (let i = 0; i < resolution; i++) {
+                    for (let j = 0; j < resolution; j++) {
+                        const density = densityData[i][j];
+                        const normalized = Math.min(1, density / maxDisplayDensity);
+                        
+                        ctx.fillStyle = viridis(normalized);
+                        ctx.fillRect(
+                            i * pixelSize,
+                            j * pixelSize,
+                            Math.ceil(pixelSize) + 0.5,
+                            Math.ceil(pixelSize) + 0.5
+                        );
+                    }
+                }
+            } else {
+                // Draw empirical particles with size proportional to mass
+                // Make sure particles are initialized
+                if (state.particles.length === 0) {
+                    initializeParticles();
+                }
+                
+                const evolvedParticles = getEvolvedParticles();
+                const particleMass = 1.0 / state.numParticles;
+                // Base radius that scales with particle mass
+                const baseRadius = Math.max(3, Math.min(10, 200 * particleMass));
+                
+                ctx.fillStyle = 'rgba(102, 126, 234, 0.7)';
+                ctx.strokeStyle = 'rgba(102, 126, 234, 1)';
+                ctx.lineWidth = 1.5;
+                
+                for (const particle of evolvedParticles) {
+                    const [cx, cy] = toCanvas(particle.x, particle.y);
+                    
+                    ctx.beginPath();
+                    ctx.arc(cx, cy, baseRadius, 0, 2 * Math.PI);
+                    ctx.fill();
+                    ctx.stroke();
+                }
+            }
+            
+            // Draw hyperplane for current step - FIXED position
+            const { stepIndex } = getStepFromGlobalTime(state.globalTime);
+            if (stepIndex < state.steps.length) {
+                const step = state.steps[stepIndex];
+                
+                ctx.strokeStyle = 'rgba(255, 0, 0, 0.7)';
+                ctx.lineWidth = 2.5;
+                ctx.setLineDash([8, 4]);
+                ctx.beginPath();
+                
+                if (Math.abs(step.a[1]) > 1e-10) {
+                    // Find two points on the hyperplane line
+                    const x1_world = -3;
+                    const x2_world = 3;
+                    const y1_world = -(step.a[0] * x1_world + step.b) / step.a[1];
+                    const y2_world = -(step.a[0] * x2_world + step.b) / step.a[1];
+                    
+                    const [cx1, cy1] = toCanvas(x1_world, y1_world);
+                    const [cx2, cy2] = toCanvas(x2_world, y2_world);
+                    
+                    // Extend line to cover entire canvas
+                    const dx = cx2 - cx1;
+                    const dy = cy2 - cy1;
+                    const len = Math.sqrt(dx * dx + dy * dy);
+                    
+                    if (len > 0.001) {
+                        const extend = 2000; // Extend far beyond canvas
+                        const nx = dx / len * extend;
+                        const ny = dy / len * extend;
+                        
+                        ctx.moveTo(cx1 - nx, cy1 - ny);
+                        ctx.lineTo(cx2 + nx, cy2 + ny);
+                    }
+                } else if (Math.abs(step.a[0]) > 1e-10) {
+                    // Vertical line
+                    const x_world = -step.b / step.a[0];
+                    const [cx, ] = toCanvas(x_world, 0);
+                    ctx.moveTo(cx, 0);
+                    ctx.lineTo(cx, canvas.height);
+                }
+                
+                ctx.stroke();
+                ctx.setLineDash([]);
+            }
+            
+            // Draw vector field
+            // Always draw vectors, but with reduced opacity if many particles
+            const vectorAlpha = state.representation === 'empirical' && state.numParticles > 50 
+                ? state.vectorOpacity * 0.5 
+                : state.vectorOpacity;
+            
+            ctx.strokeStyle = `rgba(255, 99, 71, ${vectorAlpha})`;
+            ctx.fillStyle = `rgba(255, 99, 71, ${vectorAlpha})`;
+            ctx.lineWidth = 1.5;
+                
+                const spacing = state.vectorDensity;
+                for (let i = 0; i <= spacing; i++) {
+                    for (let j = 0; j <= spacing; j++) {
+                        const x = (i / spacing - 0.5) * 4;
+                        const y = (j / spacing - 0.5) * 4;
+                        const [vx, vy] = vectorField(x, y);
+                        
+                        if (vx * vx + vy * vy > 0.0001) {
+                            const [cx, cy] = toCanvas(x, y);
+                            const vnorm = Math.sqrt(vx * vx + vy * vy);
+                            const scale_arrow = Math.min(20, 15 / Math.sqrt(vnorm + 0.1));
+                            const [cx2, cy2] = toCanvas(
+                                x + vx * scale_arrow / scale,
+                                y + vy * scale_arrow / scale
+                            );
+                            
+                            ctx.beginPath();
+                            ctx.moveTo(cx, cy);
+                            ctx.lineTo(cx2, cy2);
+                            ctx.stroke();
+                            
+                            const angle = Math.atan2(cy - cy2, cx - cx2);
+                            const headlen = 5;
+                            ctx.beginPath();
+                            ctx.moveTo(cx2, cy2);
+                            ctx.lineTo(cx2 + headlen * Math.cos(angle + Math.PI/6),
+                                      cy2 + headlen * Math.sin(angle + Math.PI/6));
+                            ctx.moveTo(cx2, cy2);
+                            ctx.lineTo(cx2 + headlen * Math.cos(angle - Math.PI/6),
+                                      cy2 + headlen * Math.sin(angle - Math.PI/6));
+                            ctx.stroke();
+                        }
+                    }
+                }
+        }
+        
+        // Main draw function
+        function draw() {
+            if (state.dimension === 1) {
+                draw1D();
+            } else {
+                draw2D();
+            }
+        }
+        
+        // Animation loop
+        function animate() {
+            if (state.isPlaying) {
+                // Each step should take exactly 1 second
+                // With 60 FPS, increment = 1 / (60 frames * number of steps)
+                const framesPerSecond = 60;
+                const totalFrames = framesPerSecond * state.steps.length;
+                const increment = 1 / totalFrames;
+                
+                state.globalTime += increment;
+                
+                if (state.globalTime >= 1) {
+                    state.globalTime = 1;
+                    state.isPlaying = false;
+                    document.getElementById('playBtn').textContent = '▶ Play';
+                }
+                
+                document.getElementById('globalTime').value = state.globalTime;
+                const totalSeconds = state.globalTime * state.steps.length;
+                document.getElementById('globalTimeValue').textContent = totalSeconds.toFixed(2) + 's';
+                updateTimelineCursor();
+                draw();
+                
+                if (state.isPlaying) {
+                    state.animationId = requestAnimationFrame(animate);
+                }
+            }
+        }
+        
+        // Canvas interaction for zoom, pan, and setting b value
+        canvas.addEventListener('wheel', function(e) {
+            e.preventDefault();
+            const rect = canvas.getBoundingClientRect();
+            const mouseX = e.clientX - rect.left;
+            const mouseY = e.clientY - rect.top;
+            
+            // Zoom in/out
+            const zoomFactor = e.deltaY > 0 ? 0.9 : 1.1;
+            const newZoom = Math.max(0.5, Math.min(5, state.zoom * zoomFactor));
+            
+            if (state.dimension === 2) {
+                // Zoom to mouse position in 2D
+                const scale = 160 * state.zoom;
+                const centerX = canvas.width / 2;
+                const centerY = canvas.height / 2;
+                
+                const worldX = (mouseX - centerX) / scale - state.panX;
+                const worldY = -(mouseY - centerY) / scale - state.panY;
+                
+                state.zoom = newZoom;
+                
+                const newScale = 160 * state.zoom;
+                state.panX = (mouseX - centerX) / newScale - worldX;
+                state.panY = -(mouseY - centerY) / newScale - worldY;
+            } else {
+                // Zoom to mouse position in 1D
+                const padding = 50;
+                const graphWidth = canvas.width - 2 * padding;
+                const xMin = -3 / state.zoom - state.panX;
+                const xMax = 3 / state.zoom - state.panX;
+                
+                const worldX = xMin + ((mouseX - padding) / graphWidth) * (xMax - xMin);
+                
+                state.zoom = newZoom;
+                
+                const newXMin = -3 / state.zoom - state.panX;
+                const newXMax = 3 / state.zoom - state.panX;
+                const newWorldX = newXMin + ((mouseX - padding) / graphWidth) * (newXMax - newXMin);
+                
+                state.panX += newWorldX - worldX;
+            }
+            
+            draw();
+        });
+        
+        canvas.addEventListener('mousedown', function(e) {
+            const rect = canvas.getBoundingClientRect();
+            const x = e.clientX - rect.left;
+            const y = e.clientY - rect.top;
+            
+            state.lastMouseX = x;
+            state.lastMouseY = y;
+            
+            if (e.shiftKey) {
+                // Shift+click to set b value
+                state.isSettingB = true;
+                updateBFromMouse(x, y);
+            } else {
+                // Regular click to pan
+                state.isPanning = true;
+            }
+            
+            state.mouseDown = true;
+        });
+        
+        canvas.addEventListener('mousemove', function(e) {
+            const rect = canvas.getBoundingClientRect();
+            const x = e.clientX - rect.left;
+            const y = e.clientY - rect.top;
+            
+            if (state.mouseDown) {
+                if (state.isSettingB) {
+                    updateBFromMouse(x, y);
+                } else if (state.isPanning) {
+                    // Pan the view
+                    const dx = x - state.lastMouseX;
+                    const dy = y - state.lastMouseY;
+                    
+                    if (state.dimension === 1) {
+                        const padding = 50;
+                        const graphWidth = canvas.width - 2 * padding;
+                        const xRange = 6 / state.zoom;
+                        state.panX += (dx / graphWidth) * xRange;
+                    } else {
+                        const scale = 160 * state.zoom;
+                        state.panX += dx / scale;
+                        state.panY -= dy / scale;
+                    }
+                    
+                    state.lastMouseX = x;
+                    state.lastMouseY = y;
+                    draw();
+                }
+            }
+        });
+        
+        canvas.addEventListener('mouseup', function() {
+            state.mouseDown = false;
+            state.isPanning = false;
+            state.isSettingB = false;
+        });
+        
+        canvas.addEventListener('mouseleave', function() {
+            state.mouseDown = false;
+            state.isPanning = false;
+            state.isSettingB = false;
+        });
+        
+        // Add keyboard shortcuts
+        document.addEventListener('keydown', function(e) {
+            if (e.target.tagName === 'INPUT') return;
+            
+            switch(e.key) {
+                case 'r':
+                case 'R':
+                    // Reset zoom and pan
+                    state.zoom = 1;
+                    state.panX = 0;
+                    state.panY = 0;
+                    draw();
+                    break;
+                case ' ':
+                    // Space to play/pause
+                    e.preventDefault();
+                    document.getElementById('playBtn').click();
+                    break;
+            }
+        });
+        
+        // Update b value from mouse position (accounting for zoom/pan)
+        function updateBFromMouse(mouseX, mouseY) {
+            const { stepIndex } = getStepFromGlobalTime(state.globalTime);
+            if (stepIndex >= state.steps.length) return;
+            
+            const step = state.steps[stepIndex];
+            
+            if (state.dimension === 1) {
+                const padding = 50;
+                const graphWidth = canvas.width - 2 * padding;
+                const xMin = -3 / state.zoom - state.panX;
+                const xMax = 3 / state.zoom - state.panX;
+                
+                const worldX = xMin + ((mouseX - padding) / graphWidth) * (xMax - xMin);
+                
+                if (Math.abs(step.a[0]) > 1e-10) {
+                    const newB = -step.a[0] * worldX;
+                    step.b = newB;
+                    
+                    // Update both slider and text input
+                    const slider = document.getElementById(`b-slider-${stepIndex}`);
+                    const input = document.getElementById(`b-input-${stepIndex}`);
+                    if (input) {
+                        input.value = newB.toFixed(2);
+                    }
+                    if (slider && newB >= -2 && newB <= 2) {
+                        slider.value = newB;
+                    }
+                    draw();
+                }
+            } else {
+                const scale = 160 * state.zoom;
+                const centerX = canvas.width / 2;
+                const centerY = canvas.height / 2;
+                
+                const worldX = (mouseX - centerX) / scale - state.panX;
+                const worldY = -(mouseY - centerY) / scale - state.panY;
+                
+                if (Math.abs(step.a[0]) > 1e-10 || Math.abs(step.a[1]) > 1e-10) {
+                    const newB = -(step.a[0] * worldX + step.a[1] * worldY);
+                    step.b = newB;
+                    
+                    // Update both slider and text input
+                    const slider = document.getElementById(`b-slider-${stepIndex}`);
+                    const input = document.getElementById(`b-input-${stepIndex}`);
+                    if (input) {
+                        input.value = newB.toFixed(2);
+                    }
+                    if (slider && newB >= -2 && newB <= 2) {
+                        slider.value = newB;
+                    }
+                    draw();
+                }
+            }
+        }
+        
+        // Timeline click handler
+        document.getElementById('timeline').addEventListener('click', function(e) {
+            const rect = this.getBoundingClientRect();
+            const x = e.clientX - rect.left;
+            const ratio = x / rect.width;
+            state.globalTime = Math.max(0, Math.min(1, ratio));
+            document.getElementById('globalTime').value = state.globalTime;
+            const totalSeconds = state.globalTime * state.steps.length;
+            document.getElementById('globalTimeValue').textContent = totalSeconds.toFixed(2) + 's';
+            updateTimelineCursor();
+            draw();
+        });
+        
+        // Event listeners
+        document.getElementById('globalTime').addEventListener('input', function(e) {
+            state.globalTime = parseFloat(e.target.value);
+            const totalSeconds = state.globalTime * state.steps.length;
+            document.getElementById('globalTimeValue').textContent = totalSeconds.toFixed(2) + 's';
+            updateTimelineCursor();
+            draw();
+        });
+        
+        document.getElementById('resolution').addEventListener('input', function(e) {
+            state.resolution = parseInt(e.target.value);
+            document.getElementById('resolutionValue').textContent = state.resolution;
+            draw();
+        });
+        
+        document.getElementById('vectorDensity').addEventListener('input', function(e) {
+            state.vectorDensity = parseInt(e.target.value);
+            document.getElementById('vectorDensityValue').textContent = state.vectorDensity;
+            draw();
+        });
+        
+        document.getElementById('vectorOpacity').addEventListener('input', function(e) {
+            state.vectorOpacity = parseFloat(e.target.value);
+            document.getElementById('vectorOpacityValue').textContent = state.vectorOpacity.toFixed(2);
+            draw();
+        });
+        
+        document.getElementById('initialCondition').addEventListener('change', function(e) {
+            state.initialCondition = e.target.value;
+            if (state.representation === 'empirical') {
+                initializeParticles();
+            }
+            draw();
+        });
+        
+        document.getElementById('representation').addEventListener('change', function(e) {
+            state.representation = e.target.value;
+            const isEmpirical = state.representation === 'empirical';
+            document.getElementById('particlesControl').style.display = isEmpirical ? 'block' : 'none';
+            document.getElementById('resampleBtn').style.display = isEmpirical ? 'block' : 'none';
+            
+            if (isEmpirical) {
+                initializeParticles();
+            }
+            draw();
+        });
+        
+        document.getElementById('numParticles').addEventListener('input', function(e) {
+            const value = parseInt(e.target.value);
+            if (value >= 1 && value <= 1000) {
+                state.numParticles = value;
+                initializeParticles();
+                draw();
+            }
+        });
+        
+        document.getElementById('resampleBtn').addEventListener('click', function() {
+            initializeParticles();
+            draw();
+        });
+        
+        document.getElementById('playBtn').addEventListener('click', function() {
+            state.isPlaying = !state.isPlaying;
+            this.textContent = state.isPlaying ? '⏸ Pause' : '▶ Play';
+            if (state.isPlaying) {
+                animate();
+            } else {
+                if (state.animationId) {
+                    cancelAnimationFrame(state.animationId);
+                }
+            }
+        });
+        
+        document.getElementById('resetBtn').addEventListener('click', function() {
+            state.globalTime = 0;
+            state.isPlaying = false;
+            document.getElementById('globalTime').value = 0;
+            document.getElementById('globalTimeValue').textContent = '0.00s';
+            document.getElementById('playBtn').textContent = '▶ Play';
+            updateTimelineCursor();
+            if (state.animationId) {
+                cancelAnimationFrame(state.animationId);
+            }
+            draw();
+        });
+        
+        document.getElementById('addStepBtn').addEventListener('click', addStep);
+        
+        // Toggle visualization overlays (hyperplane and vector field)
+        function toggleVisualization() {
+            state.showHyperplane = !state.showHyperplane;
+            state.showVectorField = !state.showVectorField;
+            
+            const btn = document.getElementById('toggleVisBtn');
+            if (state.showHyperplane && state.showVectorField) {
+                btn.textContent = '👁 Hide Overlays';
+                btn.classList.add('active');
+            } else {
+                btn.textContent = '👁 Show Overlays';
+                btn.classList.remove('active');
+            }
+            
+            draw();
+        }
+        
+        // Save current canvas as image
+        function saveImage() {
+            const filename = prompt('Enter filename for image:', `relu_flow_${Date.now()}.png`);
+            if (filename) {
+                canvas.toBlob(function(blob) {
+                    const url = URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = filename.endsWith('.png') ? filename : filename + '.png';
+                    document.body.appendChild(a);
+                    a.click();
+                    document.body.removeChild(a);
+                    URL.revokeObjectURL(url);
+                });
+            }
+        }
+        
+        // Toggle video recording
+        function toggleRecording() {
+            if (state.isRecording) {
+                stopRecording();
+            } else {
+                startRecording();
+            }
+        }
+        
+        // Start recording the animation
+        function startRecording() {
+            // Alert about video format
+            alert('Note: Video will be saved as WebM format.\n\nTo convert to MP4:\n• Use FFmpeg: ffmpeg -i video.webm video.mp4\n• Or use online converters like CloudConvert\n• Or use VLC Media Player');
+            
+            // Reset to beginning
+            state.globalTime = 0;
+            document.getElementById('globalTime').value = 0;
+            const totalSeconds = 0;
+            document.getElementById('globalTimeValue').textContent = '0.00s';
+            updateTimelineCursor();
+            draw();
+            
+            // Set up MediaRecorder with higher quality
+            const stream = canvas.captureStream(60); // 60 FPS for smoother video
+            const options = {
+                mimeType: 'video/webm;codecs=vp9',
+                videoBitsPerSecond: 10000000 // 10 Mbps for higher quality
+            };
+            
+            try {
+                state.mediaRecorder = new MediaRecorder(stream, options);
+            } catch (e) {
+                // Fallback to VP8 if VP9 is not supported
+                try {
+                    const fallbackOptions = {
+                        mimeType: 'video/webm',
+                        videoBitsPerSecond: 10000000
+                    };
+                    state.mediaRecorder = new MediaRecorder(stream, fallbackOptions);
+                } catch (e2) {
+                    // Final fallback
+                    state.mediaRecorder = new MediaRecorder(stream);
+                }
+            }
+            
+            state.recordedChunks = [];
+            
+            state.mediaRecorder.ondataavailable = function(event) {
+                if (event.data.size > 0) {
+                    state.recordedChunks.push(event.data);
+                }
+            };
+            
+            state.mediaRecorder.onstop = function() {
+                const blob = new Blob(state.recordedChunks, { type: 'video/webm' });
+                const filename = prompt('Enter filename for video:', `relu_flow_${Date.now()}.webm`);
+                
+                if (filename) {
+                    const url = URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = filename.endsWith('.webm') ? filename : filename + '.webm';
+                    document.body.appendChild(a);
+                    a.click();
+                    document.body.removeChild(a);
+                    URL.revokeObjectURL(url);
+                }
+                
+                // Reset button state
+                const btn = document.getElementById('recordBtn');
+                btn.textContent = '🎥 Record Video';
+                btn.classList.remove('recording');
+                state.isRecording = false;
+            };
+            
+            // Start recording
+            state.mediaRecorder.start();
+            state.isRecording = true;
+            
+            // Update button
+            const btn = document.getElementById('recordBtn');
+            btn.textContent = '⏹ Stop Recording';
+            btn.classList.add('recording');
+            
+            // Start playing animation
+            state.isPlaying = true;
+            document.getElementById('playBtn').textContent = '⏸ Pause';
+            animateRecording();
+        }
+        
+        // Animation loop for recording
+        function animateRecording() {
+            if (state.isRecording && state.isPlaying) {
+                state.globalTime += 0.008; // Slower for smoother recording at 60fps
+                
+                if (state.globalTime >= 1) {
+                    state.globalTime = 1;
+                    draw();
+                    setTimeout(() => {
+                        stopRecording();
+                    }, 100); // Small delay to capture last frame
+                } else {
+                    document.getElementById('globalTime').value = state.globalTime;
+                    const totalSeconds = state.globalTime * state.steps.length;
+                    document.getElementById('globalTimeValue').textContent = totalSeconds.toFixed(2) + 's';
+                    updateTimelineCursor();
+                    draw();
+                    
+                    requestAnimationFrame(animateRecording);
+                }
+            }
+        }
+        
+        // Stop recording
+        function stopRecording() {
+            if (state.mediaRecorder && state.isRecording) {
+                state.mediaRecorder.stop();
+                state.isPlaying = false;
+                document.getElementById('playBtn').textContent = '▶ Play';
+            }
+        }
+        
+        // Initialize
+        setDimension(1);
+        renderSteps();
+        draw();
+    </script>
+</body>
+</html>
