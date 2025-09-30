@@ -49,7 +49,7 @@
             padding: 20px;
             display: flex; flex-direction: column; align-items: center; position: relative;
         }
-        .canvas-controls { display: flex; gap: 8px; margin-bottom: 10px; }
+        .canvas-controls { display: flex; gap: 8px; margin-bottom: 10px; flex-wrap: wrap; }
         .canvas-btn {
             padding: 5px 10px; background: #4a5568; color: white; border: none; border-radius: 4px;
             font-size: 10px; cursor: pointer; transition: all 0.3s;
@@ -58,6 +58,55 @@
         .canvas-btn.active { background: #667eea; }
         .canvas-btn.recording { background: #f56565; animation: pulse 1.5s infinite; }
         @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.6} }
+        
+        /* Fullscreen styles */
+        .canvas-container:fullscreen { 
+            background: #1a202c; 
+            display: flex; 
+            flex-direction: column;
+            align-items: center; 
+            justify-content: center; 
+            padding: 40px; 
+        }
+        .canvas-container:fullscreen canvas { 
+            max-width: 90vw; 
+            max-height: 80vh; 
+            box-shadow: 0 10px 40px rgba(0,0,0,0.5);
+        }
+        .canvas-container:fullscreen .canvas-controls {
+            order: -1;
+            margin-bottom: 20px;
+        }
+        .fullscreen-controls {
+            display: none;
+            gap: 15px;
+            margin-top: 20px;
+        }
+        .canvas-container:fullscreen .fullscreen-controls {
+            display: flex;
+        }
+        .fullscreen-btn {
+            padding: 12px 24px;
+            background: #667eea;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        .fullscreen-btn:hover {
+            background: #5a67d8;
+            transform: translateY(-2px);
+        }
+        .fullscreen-btn.secondary {
+            background: #48bb78;
+        }
+        .fullscreen-btn.secondary:hover {
+            background: #38a169;
+        }
+        
         canvas { border: 1px solid rgba(0,0,0,0.1); border-radius: 10px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); cursor: crosshair; }
         .controls { background: #f7fafc; border-radius: 15px; padding: 12px; overflow-y: auto; max-height: 800px; }
         .control-group { margin-bottom: 12px; padding-bottom: 10px; border-bottom: 1px solid #e2e8f0; }
@@ -84,10 +133,40 @@
         .btn-add:hover { background: #3182ce; }
         .info-panel { background: #edf2f7; border-radius: 6px; padding: 10px; margin-top: 10px; font-size: 10px; color: #4a5568; }
         .formula { background: white; padding: 6px; border-radius: 3px; margin-top: 6px; font-size: 12px; }
-        .step-container { background: white; border: 1px solid #e2e8f0; border-radius: 5px; padding: 8px; margin-bottom: 8px; position: relative; }
+        
+        /* Step tabs system */
+        .step-tabs { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 10px; }
+        .step-tab { 
+            padding: 6px 12px; 
+            background: #e2e8f0; 
+            color: #4a5568; 
+            border: none; 
+            border-radius: 5px; 
+            font-size: 10px; 
+            font-weight: 600; 
+            cursor: pointer; 
+            transition: all 0.3s; 
+        }
+        .step-tab.active { background: #667eea; color: white; }
+        .step-tab:hover:not(.active) { background: #cbd5e0; }
+        
+        .step-content { 
+            display: none;
+            background: white; 
+            border: 1px solid #e2e8f0; 
+            border-radius: 5px; 
+            padding: 8px; 
+        }
+        .step-content.active { display: block; }
         .step-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
         .step-title { font-weight: 600; color: #2d3748; font-size: 11px; }
         .step-controls { display: flex; flex-direction: column; gap: 6px; }
+        
+        /* Compact layout */
+        .compact-row { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+        .compact-item { margin-bottom: 6px; }
+        .compact-item label { font-size: 9px; display: flex; align-items: center; justify-content: space-between; }
+        
         .timeline { background: #edf2f7; border-radius: 5px; padding: 6px; margin-bottom: 8px; }
         .timeline-bar { height: 30px; background: white; border-radius: 3px; position: relative; overflow: hidden; cursor: pointer; }
         .timeline-segment {
@@ -101,7 +180,6 @@
         .dim-button.active { background: #667eea; color: white; border-color: #667eea; }
         .hidden { display: none !important; }
         .param-input { width: 60px; padding: 2px 4px; border: 1px solid #cbd5e0; border-radius: 3px; background: white; color: #4a5568; font-size: 10px; margin-left: 6px; text-align: center; }
-        .control-item label { display: flex; align-items: center; justify-content: space-between; }
     </style>
 </head>
 <body>
@@ -134,10 +212,17 @@
                     <button class="canvas-btn" id="recordBtn" onclick="toggleRecording()">
                         🎥 Record Video
                     </button>
+                    <button class="canvas-btn" id="fullscreenBtn" onclick="toggleFullscreen()">
+                        ⬢ Fullscreen
+                    </button>
                 </div>
                 <canvas id="flowCanvas" width="800" height="800"></canvas>
                 <div style="text-align: center; margin-top: 8px; font-size: 10px; color: #718096;">
                     Shift+click to set hyperplane • Drag to pan • Scroll to zoom 
+                </div>
+                <div class="fullscreen-controls">
+                    <button class="fullscreen-btn" id="fsPlayBtn" onclick="fsTogglePlay()">▶ Play</button>
+                    <button class="fullscreen-btn secondary" id="fsResetBtn" onclick="fsReset()">↺ Reset</button>
                 </div>
             </div>
             
@@ -180,8 +265,9 @@
                         <label>Global Time <span class="value-display" id="globalTimeValue">0.00s</span></label>
                         <input type="range" id="globalTime" min="0" max="1" step="0.01" value="0">
                     </div>
-                    <div id="stepsContainer"></div>
                     <button class="btn-add" id="addStepBtn">+ Add New Step</button>
+                    <div class="step-tabs" id="stepTabs"></div>
+                    <div id="stepsContainer"></div>
                 </div>
                 
                 <div class="control-group">
@@ -486,33 +572,33 @@
             return { x: currentX, y: currentY };
         }
         
-        // Create step HTML with text inputs
+        // Create step HTML with text inputs - COMPACT VERSION
         function createStepHTML(index) {
             const step = state.steps[index];
             
             if (state.dimension === 1) {
                 return `
-                    <div class="step-container" data-index="${index}">
+                    <div class="step-content" data-index="${index}" id="step-content-${index}">
                         <div class="step-header">
-                            <span class="step-title">Step ${index + 1}</span>
+                            <span class="step-title">Step ${index + 1} Parameters</span>
                             <button class="btn-danger" onclick="removeStep(${index})">Remove</button>
                         </div>
                         <div class="step-controls">
-                            <div class="control-item">
+                            <div class="compact-item">
                                 <label>w <input type="number" class="param-input" step="0.1" value="${step.w[0]}" 
                                        onchange="updateStepParamDirect(${index}, 'w', 0, this.value)"
                                        id="w-input-${index}-0"></label>
                                 <input type="range" min="-1" max="1" step="0.1" value="${step.w[0]}" 
                                        oninput="updateStepParam(${index}, 'w', 0, this.value)">
                             </div>
-                            <div class="control-item">
+                            <div class="compact-item">
                                 <label>a <input type="number" class="param-input" step="0.1" value="${step.a[0]}" 
                                        onchange="updateStepParamDirect(${index}, 'a', 0, this.value)"
                                        id="a-input-${index}-0"></label>
                                 <input type="range" min="-1" max="1" step="0.1" value="${step.a[0]}" 
                                        oninput="updateStepParam(${index}, 'a', 0, this.value)">
                             </div>
-                            <div class="control-item">
+                            <div class="compact-item">
                                 <label>b <input type="number" class="param-input" step="0.1" value="${step.b}" 
                                        onchange="updateStepParamDirect(${index}, 'b', null, this.value)"
                                        id="b-input-${index}"></label>
@@ -525,41 +611,45 @@
                 `;
             } else {
                 return `
-                    <div class="step-container" data-index="${index}">
+                    <div class="step-content" data-index="${index}" id="step-content-${index}">
                         <div class="step-header">
-                            <span class="step-title">Step ${index + 1}</span>
+                            <span class="step-title">Step ${index + 1} Parameters</span>
                             <button class="btn-danger" onclick="removeStep(${index})">Remove</button>
                         </div>
                         <div class="step-controls">
-                            <div class="control-item">
-                                <label>w₁ <input type="number" class="param-input" step="0.1" value="${step.w[0]}" 
-                                       onchange="updateStepParamDirect(${index}, 'w', 0, this.value)"
-                                       id="w-input-${index}-0"></label>
-                                <input type="range" min="-1" max="1" step="0.1" value="${step.w[0]}" 
-                                       oninput="updateStepParam(${index}, 'w', 0, this.value)">
+                            <div class="compact-row">
+                                <div class="compact-item">
+                                    <label>w₁ <input type="number" class="param-input" step="0.1" value="${step.w[0]}" 
+                                           onchange="updateStepParamDirect(${index}, 'w', 0, this.value)"
+                                           id="w-input-${index}-0"></label>
+                                    <input type="range" min="-1" max="1" step="0.1" value="${step.w[0]}" 
+                                           oninput="updateStepParam(${index}, 'w', 0, this.value)">
+                                </div>
+                                <div class="compact-item">
+                                    <label>w₂ <input type="number" class="param-input" step="0.1" value="${step.w[1]}" 
+                                           onchange="updateStepParamDirect(${index}, 'w', 1, this.value)"
+                                           id="w-input-${index}-1"></label>
+                                    <input type="range" min="-1" max="1" step="0.1" value="${step.w[1]}" 
+                                           oninput="updateStepParam(${index}, 'w', 1, this.value)">
+                                </div>
                             </div>
-                            <div class="control-item">
-                                <label>w₂ <input type="number" class="param-input" step="0.1" value="${step.w[1]}" 
-                                       onchange="updateStepParamDirect(${index}, 'w', 1, this.value)"
-                                       id="w-input-${index}-1"></label>
-                                <input type="range" min="-1" max="1" step="0.1" value="${step.w[1]}" 
-                                       oninput="updateStepParam(${index}, 'w', 1, this.value)">
+                            <div class="compact-row">
+                                <div class="compact-item">
+                                    <label>a₁ <input type="number" class="param-input" step="0.1" value="${step.a[0]}" 
+                                           onchange="updateStepParamDirect(${index}, 'a', 0, this.value)"
+                                           id="a-input-${index}-0"></label>
+                                    <input type="range" min="-1" max="1" step="0.1" value="${step.a[0]}" 
+                                           oninput="updateStepParam(${index}, 'a', 0, this.value)">
+                                </div>
+                                <div class="compact-item">
+                                    <label>a₂ <input type="number" class="param-input" step="0.1" value="${step.a[1]}" 
+                                           onchange="updateStepParamDirect(${index}, 'a', 1, this.value)"
+                                           id="a-input-${index}-1"></label>
+                                    <input type="range" min="-1" max="1" step="0.1" value="${step.a[1]}" 
+                                           oninput="updateStepParam(${index}, 'a', 1, this.value)">
+                                </div>
                             </div>
-                            <div class="control-item">
-                                <label>a₁ <input type="number" class="param-input" step="0.1" value="${step.a[0]}" 
-                                       onchange="updateStepParamDirect(${index}, 'a', 0, this.value)"
-                                       id="a-input-${index}-0"></label>
-                                <input type="range" min="-1" max="1" step="0.1" value="${step.a[0]}" 
-                                       oninput="updateStepParam(${index}, 'a', 0, this.value)">
-                            </div>
-                            <div class="control-item">
-                                <label>a₂ <input type="number" class="param-input" step="0.1" value="${step.a[1]}" 
-                                       onchange="updateStepParamDirect(${index}, 'a', 1, this.value)"
-                                       id="a-input-${index}-1"></label>
-                                <input type="range" min="-1" max="1" step="0.1" value="${step.a[1]}" 
-                                       oninput="updateStepParam(${index}, 'a', 1, this.value)">
-                            </div>
-                            <div class="control-item">
+                            <div class="compact-item">
                                 <label>b <input type="number" class="param-input" step="0.1" value="${step.b}" 
                                        onchange="updateStepParamDirect(${index}, 'b', null, this.value)"
                                        id="b-input-${index}"></label>
@@ -614,12 +704,52 @@
             draw();
         }
         
-        // Render all steps
+        // Render all steps with tabs
         function renderSteps() {
-            const container = document.getElementById('stepsContainer');
-            container.innerHTML = state.steps.map((_, i) => createStepHTML(i)).join('');
+            const tabsContainer = document.getElementById('stepTabs');
+            const contentContainer = document.getElementById('stepsContainer');
+            
+            // Create tabs
+            let tabsHTML = '';
+            for (let i = 0; i < state.steps.length; i++) {
+                const isActive = i === 0 ? 'active' : '';
+                tabsHTML += `<button class="step-tab ${isActive}" onclick="selectStep(${i})" id="step-tab-${i}">Step ${i + 1}</button>`;
+            }
+            tabsContainer.innerHTML = tabsHTML;
+            
+            // Create content
+            contentContainer.innerHTML = state.steps.map((_, i) => createStepHTML(i)).join('');
+            
+            // Show first step by default
+            if (state.steps.length > 0) {
+                selectStep(0);
+            }
+            
             updateTimeline();
             draw();
+        }
+        
+        // Select a step to edit
+        function selectStep(index) {
+            // Update tabs
+            const tabs = document.querySelectorAll('.step-tab');
+            tabs.forEach((tab, i) => {
+                if (i === index) {
+                    tab.classList.add('active');
+                } else {
+                    tab.classList.remove('active');
+                }
+            });
+            
+            // Update content
+            const contents = document.querySelectorAll('.step-content');
+            contents.forEach((content, i) => {
+                if (i === index) {
+                    content.classList.add('active');
+                } else {
+                    content.classList.remove('active');
+                }
+            });
         }
         
         // Add new step
@@ -632,6 +762,8 @@
                 b: randomValue(-2, 2)
             });
             renderSteps();
+            // Select the newly added step
+            selectStep(state.steps.length - 1);
         }
         
         // Remove step
@@ -756,6 +888,31 @@
                 }
             }
             
+            // Draw negative halfspace in empirical mode
+            if (state.representation === 'empirical') {
+                const { stepIndex } = getStepFromGlobalTime(state.globalTime);
+                if (stepIndex < state.steps.length) {
+                    const step = state.steps[stepIndex];
+                    if (Math.abs(step.a[0]) > 1e-10) {
+                        const hyperplaneX = -step.b / step.a[0];
+                        const xPos = padding + (hyperplaneX - xMin) * xScale;
+                        
+                        ctx.fillStyle = 'rgba(150, 150, 150, 0.15)';
+                        if (step.a[0] > 0) {
+                            // Negative side is to the left
+                            ctx.fillRect(padding, padding, 
+                                        Math.max(0, xPos - padding), 
+                                        canvas.height - 2 * padding);
+                        } else {
+                            // Negative side is to the right
+                            ctx.fillRect(xPos, padding, 
+                                        canvas.width - padding - xPos, 
+                                        canvas.height - 2 * padding);
+                        }
+                    }
+                }
+            }
+            
             let totalMass = 0;
             
             if (state.representation === 'population') {
@@ -865,7 +1022,7 @@
                 }
             }
             
-            // Draw vector field - cover entire visible range
+            // Draw vector field
             if (state.showVectorField) {
                 const arrowSpacing = 30;
                 const yBase = canvas.height - padding + 20;
@@ -970,8 +1127,96 @@
             ctx.lineTo(axisX, canvas.height);
             ctx.stroke();
             
+            // Draw negative halfspace in empirical mode
+            if (state.representation === 'empirical') {
+                const { stepIndex } = getStepFromGlobalTime(state.globalTime);
+                if (stepIndex < state.steps.length) {
+                    const step = state.steps[stepIndex];
+                    
+                    ctx.fillStyle = 'rgba(150, 150, 150, 0.15)';
+                    ctx.beginPath();
+                    
+                    // We need to fill the negative halfspace: a[0]*x + a[1]*y + b < 0
+                    // This means we need to determine which side of the hyperplane is negative
+                    
+                    if (Math.abs(step.a[0]) > 1e-10 || Math.abs(step.a[1]) > 1e-10) {
+                        // Test point (0,0) to determine which side is negative
+                        const testValue = step.b;
+                        
+                        if (Math.abs(step.a[1]) > 1e-10) {
+                            // Hyperplane is not vertical
+                            const x1_world = -5 / state.zoom - state.panX;
+                            const x2_world = 5 / state.zoom - state.panX;
+                            const y1_world = -(step.a[0] * x1_world + step.b) / step.a[1];
+                            const y2_world = -(step.a[0] * x2_world + step.b) / step.a[1];
+                            
+                            const [cx1, cy1] = toCanvas(x1_world, y1_world);
+                            const [cx2, cy2] = toCanvas(x2_world, y2_world);
+                            
+                            // Create a large polygon covering the negative side
+                            if (testValue < 0) {
+                                // Origin is on negative side, fill below/above the line depending on orientation
+                                if (step.a[1] > 0) {
+                                    // Fill below the line
+                                    ctx.moveTo(cx1, cy1);
+                                    ctx.lineTo(cx2, cy2);
+                                    ctx.lineTo(canvas.width, canvas.height);
+                                    ctx.lineTo(0, canvas.height);
+                                } else {
+                                    // Fill above the line
+                                    ctx.moveTo(cx1, cy1);
+                                    ctx.lineTo(cx2, cy2);
+                                    ctx.lineTo(canvas.width, 0);
+                                    ctx.lineTo(0, 0);
+                                }
+                            } else {
+                                // Origin is on positive side
+                                if (step.a[1] > 0) {
+                                    // Fill above the line
+                                    ctx.moveTo(cx1, cy1);
+                                    ctx.lineTo(cx2, cy2);
+                                    ctx.lineTo(canvas.width, 0);
+                                    ctx.lineTo(0, 0);
+                                } else {
+                                    // Fill below the line
+                                    ctx.moveTo(cx1, cy1);
+                                    ctx.lineTo(cx2, cy2);
+                                    ctx.lineTo(canvas.width, canvas.height);
+                                    ctx.lineTo(0, canvas.height);
+                                }
+                            }
+                        } else if (Math.abs(step.a[0]) > 1e-10) {
+                            // Vertical hyperplane
+                            const x_world = -step.b / step.a[0];
+                            const [cx, ] = toCanvas(x_world, 0);
+                            
+                            if (testValue < 0) {
+                                if (step.a[0] > 0) {
+                                    // Fill to the left
+                                    ctx.rect(0, 0, cx, canvas.height);
+                                } else {
+                                    // Fill to the right
+                                    ctx.rect(cx, 0, canvas.width - cx, canvas.height);
+                                }
+                            } else {
+                                if (step.a[0] > 0) {
+                                    // Fill to the right
+                                    ctx.rect(cx, 0, canvas.width - cx, canvas.height);
+                                } else {
+                                    // Fill to the left
+                                    ctx.rect(0, 0, cx, canvas.height);
+                                }
+                            }
+                        }
+                        
+                        ctx.closePath();
+                        ctx.fill();
+                    }
+                }
+            }
+            
             if (state.representation === 'population') {
-                // Draw heatmap - calculate density in the visible range considering pan/zoom
+                // Draw heatmap
                 const resolution = state.resolution;
                 const pixelSize = canvas.width / resolution;
                 
@@ -1078,7 +1323,7 @@
                 }
             }
             
-            // Draw vector field - cover entire visible range
+            // Draw vector field
             if (state.showVectorField) {
                 const vectorAlpha = state.representation === 'empirical' && state.numParticles > 50 
                     ? state.vectorOpacity * 0.5 
@@ -1153,6 +1398,8 @@
                     state.globalTime = 1;
                     state.isPlaying = false;
                     document.getElementById('playBtn').textContent = '▶ Play';
+                    const fsBtn = document.getElementById('fsPlayBtn');
+                    if (fsBtn) fsBtn.textContent = '▶ Play';
                 }
                 
                 document.getElementById('globalTime').value = state.globalTime;
@@ -1167,7 +1414,36 @@
             }
         }
         
-        // Canvas interaction for zoom, pan, and setting b value
+        // Fullscreen play controls
+        function fsTogglePlay() {
+            state.isPlaying = !state.isPlaying;
+            const btn = document.getElementById('fsPlayBtn');
+            btn.textContent = state.isPlaying ? '⏸ Pause' : '▶ Play';
+            document.getElementById('playBtn').textContent = state.isPlaying ? '⏸ Pause' : '▶ Play';
+            if (state.isPlaying) {
+                animate();
+            } else {
+                if (state.animationId) {
+                    cancelAnimationFrame(state.animationId);
+                }
+            }
+        }
+        
+        function fsReset() {
+            state.globalTime = 0;
+            state.isPlaying = false;
+            document.getElementById('globalTime').value = 0;
+            document.getElementById('globalTimeValue').textContent = '0.00s';
+            document.getElementById('playBtn').textContent = '▶ Play';
+            document.getElementById('fsPlayBtn').textContent = '▶ Play';
+            updateTimelineCursor();
+            if (state.animationId) {
+                cancelAnimationFrame(state.animationId);
+            }
+            draw();
+        }
+        
+        // Canvas interaction
         canvas.addEventListener('wheel', function(e) {
             e.preventDefault();
             const rect = canvas.getBoundingClientRect();
@@ -1417,6 +1693,8 @@
         document.getElementById('playBtn').addEventListener('click', function() {
             state.isPlaying = !state.isPlaying;
             this.textContent = state.isPlaying ? '⏸ Pause' : '▶ Play';
+            const fsBtn = document.getElementById('fsPlayBtn');
+            if (fsBtn) fsBtn.textContent = state.isPlaying ? '⏸ Pause' : '▶ Play';
             if (state.isPlaying) {
                 animate();
             } else {
@@ -1432,6 +1710,8 @@
             document.getElementById('globalTime').value = 0;
             document.getElementById('globalTimeValue').textContent = '0.00s';
             document.getElementById('playBtn').textContent = '▶ Play';
+            const fsBtn = document.getElementById('fsPlayBtn');
+            if (fsBtn) fsBtn.textContent = '▶ Play';
             updateTimelineCursor();
             if (state.animationId) {
                 cancelAnimationFrame(state.animationId);
@@ -1581,6 +1861,32 @@
                 document.getElementById('playBtn').textContent = '▶ Play';
             }
         }
+        
+        function toggleFullscreen() {
+            const container = document.querySelector('.canvas-container');
+            const btn = document.getElementById('fullscreenBtn');
+            
+            if (!document.fullscreenElement) {
+                container.requestFullscreen().then(() => {
+                    btn.textContent = '⇲ Exit Fullscreen';
+                }).catch(err => {
+                    alert(`Error attempting to enable fullscreen: ${err.message}`);
+                });
+            } else {
+                document.exitFullscreen().then(() => {
+                    btn.textContent = '⬢ Fullscreen';
+                });
+            }
+        }
+        
+        // Listen for fullscreen changes
+        document.addEventListener('fullscreenchange', function() {
+            const btn = document.getElementById('fullscreenBtn');
+            if (!document.fullscreenElement) {
+                btn.textContent = '⬢ Fullscreen';
+            }
+            setTimeout(() => draw(), 100);
+        });
         
         // Initialize
         setDimension(1);
