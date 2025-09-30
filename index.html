@@ -102,22 +102,12 @@
         .hidden { display: none !important; }
         .param-input { width: 60px; padding: 2px 4px; border: 1px solid #cbd5e0; border-radius: 3px; background: white; color: #4a5568; font-size: 10px; margin-left: 6px; text-align: center; }
         .control-item label { display: flex; align-items: center; justify-content: space-between; }
-        .opacity-row { display: grid; grid-template-columns: 1fr auto; align-items: center; gap: 8px; }
-        .opacity-pills { display: flex; gap: 6px; }
-        .pill {
-            padding: 2px 8px; background: #edf2f7; border: 1px solid #cbd5e0; border-radius: 999px; font-size: 10px; cursor: pointer;
-        }
-        .pill:hover { background: #e2e8f0; }
-        .interactive-hint {
-            background: #fef5e7; border: 1px solid #f39c12; border-radius: 5px; padding: 6px; margin-bottom: 8px; font-size: 10px; color: #8b6914;
-        }
     </style>
 </head>
 <body>
     <div class="container">
         <div class="header">
             <h1>ReLU Flow Simulator - Multi-Step Evolution</h1>
-            <!-- LaTeX equation -->
             <div class="subtitle">
                 <div class="formula">$$\partial_t \rho + \nabla\!\cdot(\rho\,v)=0,\qquad v(x;\theta)=w\,\big(a^\top x + b\big)_+$$</div>
             </div>
@@ -214,24 +204,6 @@
     </div>
 
     <script>
-        /**
-         * ReLU Flow Simulator
-         * Author: A. Álvarez-López
-         * Copyright (c) 2025 A. Álvarez-López
-         * 
-         * License: MIT License
-         * 
-         * Permission is hereby granted, free of charge, to any person obtaining a copy
-         * of this software to use, copy, modify, merge, publish, distribute, sublicense,
-         * and/or sell copies of the software, subject to the following conditions:
-         * 
-         * The above copyright notice and this permission notice shall be included in all
-         * copies or substantial portions of the software.
-         * 
-         * Attribution: If you use this simulator in academic work or presentations,
-         * please cite as: Álvarez-López, A. (2025). ReLU Flow Simulator.
-         */
-        
         // Get canvas and context
         const canvas = document.getElementById('flowCanvas');
         const ctx = canvas.getContext('2d');
@@ -253,7 +225,6 @@
             mouseDown: false,
             numParticles: 50,
             particles: [],
-            // Zoom and pan state
             zoom: 1,
             panX: 0,
             panY: 0,
@@ -261,10 +232,8 @@
             lastMouseX: 0,
             lastMouseY: 0,
             isSettingB: false,
-            // Visual toggles
             showHyperplane: true,
             showVectorField: true,
-            // Recording state
             isRecording: false,
             mediaRecorder: null,
             recordedChunks: []
@@ -352,27 +321,19 @@
             const stepA = state.dimension === 1 ? [step.a[0], 0] : step.a;
             const stepW = state.dimension === 1 ? [step.w[0], 0] : step.w;
             
-            // Check if x is in H^-: a^T x + b ≤ 0
             const s_x = dot(stepA, coords) + step.b;
             
             if (s_x <= 0) {
-                // Point is in H^-, density remains unchanged
                 return prevDensityFunc(x, y);
             }
             
-            // Point is in H^+, compute pullback
             const lambda = dot(stepA, stepW);
             
             let x0, y0;
             
             if (Math.abs(lambda) > 1e-10) {
-                // Non-degenerate case: λ ≠ 0
-                // A_t(x) = e^{-tA}x - (b/λ)(1 - e^{-λt})w
-                // where e^{-tA} = I + ((e^{-λt} - 1)/λ) * wa^T
-                
                 const exp_lambda_t = Math.exp(-lambda * t);
                 
-                // Compute e^{-tA}x
                 const coeff = (exp_lambda_t - 1) / lambda;
                 const aTx = dot(stepA, coords);
                 
@@ -381,33 +342,24 @@
                     state.dimension === 1 ? 0 : coords[1] + coeff * stepW[1] * aTx
                 ];
                 
-                // Compute translation term: -(b/λ)(1 - e^{-λt})w
                 const translation_coeff = (step.b / lambda) * (1 - exp_lambda_t);
                 
                 x0 = etA_x[0] - translation_coeff * stepW[0];
                 y0 = etA_x[1] - translation_coeff * stepW[1];
                 
-                // Return with jacobian
                 return prevDensityFunc(x0, y0) * exp_lambda_t;
                 
             } else {
-                // Degenerate case: λ = 0
-                // B_t(x) = e^{-tA}x - tb e^{-tA}w
-                // Since λ = 0: e^{-tA} = I - tA = I - t*wa^T
-                
                 const aTx = dot(stepA, coords);
                 
-                // Compute (I - t*wa^T)x
                 const etA_x = [
                     coords[0] - t * stepW[0] * aTx,
                     state.dimension === 1 ? 0 : coords[1] - t * stepW[1] * aTx
                 ];
                 
-                // Compute (I - t*wa^T)(tb*w) = tb*w - t^2*b*(wa^T)w = tb*w (since a^Tw = 0)
                 x0 = etA_x[0] - t * step.b * stepW[0];
                 y0 = etA_x[1] - t * step.b * stepW[1];
                 
-                // No jacobian in degenerate case
                 return prevDensityFunc(x0, y0);
             }
         }
@@ -416,17 +368,14 @@
         function densityAtLocation(x, y) {
             const { stepIndex, timeInStep } = getStepFromGlobalTime(state.globalTime);
             
-            // Build up the density function step by step
             let currentDensityFunc = (px, py) => initialDensity(px, py);
             
-            // Apply completed steps
             for (let i = 0; i < stepIndex; i++) {
                 const step = state.steps[i];
                 const prevFunc = currentDensityFunc;
                 currentDensityFunc = (px, py) => applyStepEvolution(px, py, prevFunc, step, 1.0);
             }
             
-            // Apply partial current step
             if (stepIndex < state.steps.length && timeInStep > 0) {
                 const step = state.steps[stepIndex];
                 const prevFunc = currentDensityFunc;
@@ -446,7 +395,6 @@
             const stepA = state.dimension === 1 ? [step.a[0], 0] : step.a;
             const stepW = state.dimension === 1 ? [step.w[0], 0] : step.w;
             
-            // v(x) = w * (a^T x + b)_+
             const activation = relu(dot(stepA, coords) + step.b);
             return [stepW[0] * activation, stepW[1] * activation];
         }
@@ -459,12 +407,10 @@
                 for (let i = 0; i < state.numParticles; i++) {
                     let x;
                     if (state.initialCondition === 'gaussian') {
-                        // Box-Muller transform for Gaussian sampling
                         const u1 = Math.random();
                         const u2 = Math.random();
                         x = Math.sqrt(-2 * Math.log(u1)) * Math.cos(2 * Math.PI * u2);
                     } else {
-                        // Uniform distribution [-1, 1]
                         x = (Math.random() - 0.5) * 2;
                     }
                     state.particles.push({ x: x, y: 0 });
@@ -473,7 +419,6 @@
                 for (let i = 0; i < state.numParticles; i++) {
                     let x, y;
                     if (state.initialCondition === 'gaussian') {
-                        // Box-Muller transform for 2D Gaussian
                         const u1 = Math.random();
                         const u2 = Math.random();
                         const u3 = Math.random();
@@ -481,7 +426,6 @@
                         x = Math.sqrt(-2 * Math.log(u1)) * Math.cos(2 * Math.PI * u2);
                         y = Math.sqrt(-2 * Math.log(u3)) * Math.cos(2 * Math.PI * u4);
                     } else {
-                        // Uniform distribution [-1, 1]²
                         x = (Math.random() - 0.5) * 2;
                         y = (Math.random() - 0.5) * 2;
                     }
@@ -499,7 +443,6 @@
                 let currentX = particle.x;
                 let currentY = particle.y;
                 
-                // Apply completed steps
                 for (let i = 0; i < stepIndex; i++) {
                     const step = state.steps[i];
                     const evolved = evolveParticle(currentX, currentY, step, 1.0);
@@ -507,7 +450,6 @@
                     currentY = evolved.y;
                 }
                 
-                // Apply partial current step
                 if (stepIndex < state.steps.length && timeInStep > 0) {
                     const step = state.steps[stepIndex];
                     const evolved = evolveParticle(currentX, currentY, step, timeInStep);
@@ -527,9 +469,7 @@
             const stepA = state.dimension === 1 ? [step.a[0], 0] : step.a;
             const stepW = state.dimension === 1 ? [step.w[0], 0] : step.w;
             
-            // For particles, we integrate the ODE: dx/dt = v(x) = w * (a^T x + b)_+
-            // Using Euler method with small time steps for accuracy
-            const numSteps = 50; // Number of integration steps
+            const numSteps = 50;
             const dt = t / numSteps;
             
             let currentX = coords[0];
@@ -684,7 +624,6 @@
         
         // Add new step
         function addStep() {
-            // Generate random parameters in the range [-1, 1] for w and a, [-2, 2] for b
             const randomValue = (min, max) => Math.round((Math.random() * (max - min) + min) * 10) / 10;
             
             state.steps.push({
@@ -709,14 +648,12 @@
             
             if (param === 'w' || param === 'a') {
                 state.steps[stepIndex][param][subIndex] = numValue;
-                // Update corresponding text input
                 const inputField = document.getElementById(`${param}-input-${stepIndex}-${subIndex}`);
                 if (inputField) {
                     inputField.value = numValue;
                 }
             } else {
                 state.steps[stepIndex][param] = numValue;
-                // Update corresponding text input
                 const inputField = document.getElementById(`b-input-${stepIndex}`);
                 if (inputField) {
                     inputField.value = numValue;
@@ -726,7 +663,7 @@
             draw();
         }
         
-        // Update step parameter from text input (allows arbitrary values)
+        // Update step parameter from text input
         function updateStepParamDirect(stepIndex, param, subIndex, value) {
             const numValue = parseFloat(value);
             
@@ -734,7 +671,6 @@
             
             if (param === 'w' || param === 'a') {
                 state.steps[stepIndex][param][subIndex] = numValue;
-                // Update corresponding slider if within range
                 const slider = document.querySelector(`[data-index="${stepIndex}"] input[type="range"][oninput*="${param}, ${subIndex}"]`);
                 if (slider) {
                     if (numValue >= -1 && numValue <= 1) {
@@ -743,7 +679,6 @@
                 }
             } else {
                 state.steps[stepIndex][param] = numValue;
-                // Update corresponding slider if within range
                 const slider = document.getElementById(`b-slider-${stepIndex}`);
                 if (slider) {
                     if (numValue >= -2 && numValue <= 2) {
@@ -800,7 +735,7 @@
             ctx.lineTo(padding, canvas.height - padding);
             ctx.stroke();
             
-            // Draw grid - adjust for zoom
+            // Draw grid
             ctx.strokeStyle = 'rgba(0, 0, 0, 0.1)';
             ctx.lineWidth = 1;
             const gridStep = state.zoom > 2 ? 0.5 : 1;
@@ -812,7 +747,6 @@
                     ctx.lineTo(xPos, canvas.height - padding);
                     ctx.stroke();
                     
-                    // Draw grid labels
                     if (Math.abs(x % 1) < 0.01) {
                         ctx.fillStyle = 'rgba(0, 0, 0, 0.6)';
                         ctx.font = '11px Arial';
@@ -825,12 +759,10 @@
             let totalMass = 0;
             
             if (state.representation === 'population') {
-                // Calculate density with fixed vertical scale for better visualization
                 const numPoints = 500;
                 const densityPoints = [];
                 const dx = (xMax - xMin) / numPoints;
                 
-                // Use fixed scale based on initial condition
                 const maxDisplayDensity = state.initialCondition === 'gaussian' ? 0.5 : 0.6;
                 
                 for (let i = 0; i < numPoints; i++) {
@@ -877,7 +809,6 @@
                 }
                 ctx.stroke();
             } else {
-                // Empirical mode: draw particles
                 if (state.particles.length === 0) {
                     initializeParticles();
                 }
@@ -885,30 +816,28 @@
                 const evolvedParticles = getEvolvedParticles();
                 const particleMass = 1.0 / state.numParticles;
                 
-                // Draw particles as vertical lines/bars
                 ctx.strokeStyle = 'rgba(102, 126, 234, 0.8)';
                 ctx.fillStyle = 'rgba(102, 126, 234, 0.6)';
                 ctx.lineWidth = 2;
                 
                 for (const particle of evolvedParticles) {
                     const xPos = padding + (particle.x - xMin) * xScale;
-                    const barHeight = graphHeight * 0.4 * particleMass * state.numParticles; // Scale bar height
+                    const barHeight = graphHeight * 0.4 * particleMass * state.numParticles;
                     
                     ctx.beginPath();
                     ctx.moveTo(xPos, canvas.height - padding);
                     ctx.lineTo(xPos, canvas.height - padding - barHeight);
                     ctx.stroke();
                     
-                    // Draw a circle at the top of each bar
                     ctx.beginPath();
                     ctx.arc(xPos, canvas.height - padding - barHeight, 3, 0, 2 * Math.PI);
                     ctx.fill();
                 }
                 
-                totalMass = 1.0; // Empirical always has mass 1
+                totalMass = 1.0;
             }
             
-            // Draw hyperplane (point) for current step - FIXED position regardless of zoom/pan
+            // Draw hyperplane (point)
             if (state.showHyperplane) {
                 const { stepIndex } = getStepFromGlobalTime(state.globalTime);
                 if (stepIndex < state.steps.length) {
@@ -917,7 +846,6 @@
                         const hyperplaneX = -step.b / step.a[0];
                         const xPos = padding + (hyperplaneX - xMin) * xScale;
                         
-                        // Only draw if visible
                         if (xPos >= padding && xPos <= canvas.width - padding) {
                             ctx.strokeStyle = 'rgba(255, 0, 0, 0.5)';
                             ctx.lineWidth = 2;
@@ -937,16 +865,17 @@
                 }
             }
             
-            // Draw vector field
+            // Draw vector field - cover entire visible range
             if (state.showVectorField) {
-                const arrowSpacing = Math.max(8, Math.floor(15 / state.zoom));
+                const arrowSpacing = 30;
+                const yBase = canvas.height - padding + 20;
+                
                 for (let i = 0; i <= arrowSpacing; i++) {
                     const x = xMin + (i / arrowSpacing) * (xMax - xMin);
                     const [vx, ] = vectorField(x, 0);
                     
                     if (Math.abs(vx) > 0.001) {
                         const xPos = padding + (x - xMin) * xScale;
-                        const yBase = canvas.height - padding + 20;
                         const arrowScale = Math.min(30, 20 * Math.abs(vx));
                         const endX = xPos + Math.sign(vx) * arrowScale;
                         
@@ -1042,29 +971,32 @@
             ctx.stroke();
             
             if (state.representation === 'population') {
-                // Draw heatmap
+                // Draw heatmap - calculate density in the visible range considering pan/zoom
                 const resolution = state.resolution;
                 const pixelSize = canvas.width / resolution;
+                
+                const viewRange = 2.5 / state.zoom;
+                const xMinWorld = -viewRange - state.panX;
+                const xMaxWorld = viewRange - state.panX;
+                const yMinWorld = -viewRange - state.panY;
+                const yMaxWorld = viewRange - state.panY;
                 
                 let maxDensity = 0;
                 const densityData = [];
                 
-                // First pass: calculate all densities and find max
                 for (let i = 0; i < resolution; i++) {
                     densityData[i] = [];
                     for (let j = 0; j < resolution; j++) {
-                        const x = (i / resolution - 0.5) * 5;
-                        const y = (0.5 - j / resolution) * 5;
+                        const x = xMinWorld + (i / resolution) * (xMaxWorld - xMinWorld);
+                        const y = yMaxWorld - (j / resolution) * (yMaxWorld - yMinWorld);
                         const d = densityAtLocation(x, y);
                         densityData[i][j] = d;
                         if (d > maxDensity) maxDensity = d;
                     }
                 }
                 
-                // Use fixed scale for better visualization
                 const maxDisplayDensity = state.initialCondition === 'gaussian' ? 0.2 : 0.3;
                 
-                // Draw density pixels
                 for (let i = 0; i < resolution; i++) {
                     for (let j = 0; j < resolution; j++) {
                         const density = densityData[i][j];
@@ -1080,15 +1012,12 @@
                     }
                 }
             } else {
-                // Draw empirical particles with size proportional to mass
-                // Make sure particles are initialized
                 if (state.particles.length === 0) {
                     initializeParticles();
                 }
                 
                 const evolvedParticles = getEvolvedParticles();
                 const particleMass = 1.0 / state.numParticles;
-                // Base radius that scales with particle mass
                 const baseRadius = Math.max(3, Math.min(10, 200 * particleMass));
                 
                 ctx.fillStyle = 'rgba(102, 126, 234, 0.7)';
@@ -1105,66 +1034,71 @@
                 }
             }
             
-            // Draw hyperplane for current step - FIXED position
-            const { stepIndex } = getStepFromGlobalTime(state.globalTime);
-            if (stepIndex < state.steps.length) {
-                const step = state.steps[stepIndex];
-                
-                ctx.strokeStyle = 'rgba(255, 0, 0, 0.7)';
-                ctx.lineWidth = 2.5;
-                ctx.setLineDash([8, 4]);
-                ctx.beginPath();
-                
-                if (Math.abs(step.a[1]) > 1e-10) {
-                    // Find two points on the hyperplane line
-                    const x1_world = -3;
-                    const x2_world = 3;
-                    const y1_world = -(step.a[0] * x1_world + step.b) / step.a[1];
-                    const y2_world = -(step.a[0] * x2_world + step.b) / step.a[1];
+            // Draw hyperplane
+            if (state.showHyperplane) {
+                const { stepIndex } = getStepFromGlobalTime(state.globalTime);
+                if (stepIndex < state.steps.length) {
+                    const step = state.steps[stepIndex];
                     
-                    const [cx1, cy1] = toCanvas(x1_world, y1_world);
-                    const [cx2, cy2] = toCanvas(x2_world, y2_world);
+                    ctx.strokeStyle = 'rgba(255, 0, 0, 0.7)';
+                    ctx.lineWidth = 2.5;
+                    ctx.setLineDash([8, 4]);
+                    ctx.beginPath();
                     
-                    // Extend line to cover entire canvas
-                    const dx = cx2 - cx1;
-                    const dy = cy2 - cy1;
-                    const len = Math.sqrt(dx * dx + dy * dy);
-                    
-                    if (len > 0.001) {
-                        const extend = 2000; // Extend far beyond canvas
-                        const nx = dx / len * extend;
-                        const ny = dy / len * extend;
+                    if (Math.abs(step.a[1]) > 1e-10) {
+                        const x1_world = -3;
+                        const x2_world = 3;
+                        const y1_world = -(step.a[0] * x1_world + step.b) / step.a[1];
+                        const y2_world = -(step.a[0] * x2_world + step.b) / step.a[1];
                         
-                        ctx.moveTo(cx1 - nx, cy1 - ny);
-                        ctx.lineTo(cx2 + nx, cy2 + ny);
+                        const [cx1, cy1] = toCanvas(x1_world, y1_world);
+                        const [cx2, cy2] = toCanvas(x2_world, y2_world);
+                        
+                        const dx = cx2 - cx1;
+                        const dy = cy2 - cy1;
+                        const len = Math.sqrt(dx * dx + dy * dy);
+                        
+                        if (len > 0.001) {
+                            const extend = 2000;
+                            const nx = dx / len * extend;
+                            const ny = dy / len * extend;
+                            
+                            ctx.moveTo(cx1 - nx, cy1 - ny);
+                            ctx.lineTo(cx2 + nx, cy2 + ny);
+                        }
+                    } else if (Math.abs(step.a[0]) > 1e-10) {
+                        const x_world = -step.b / step.a[0];
+                        const [cx, ] = toCanvas(x_world, 0);
+                        ctx.moveTo(cx, 0);
+                        ctx.lineTo(cx, canvas.height);
                     }
-                } else if (Math.abs(step.a[0]) > 1e-10) {
-                    // Vertical line
-                    const x_world = -step.b / step.a[0];
-                    const [cx, ] = toCanvas(x_world, 0);
-                    ctx.moveTo(cx, 0);
-                    ctx.lineTo(cx, canvas.height);
+                    
+                    ctx.stroke();
+                    ctx.setLineDash([]);
                 }
-                
-                ctx.stroke();
-                ctx.setLineDash([]);
             }
             
-            // Draw vector field
-            // Always draw vectors, but with reduced opacity if many particles
-            const vectorAlpha = state.representation === 'empirical' && state.numParticles > 50 
-                ? state.vectorOpacity * 0.5 
-                : state.vectorOpacity;
-            
-            ctx.strokeStyle = `rgba(255, 99, 71, ${vectorAlpha})`;
-            ctx.fillStyle = `rgba(255, 99, 71, ${vectorAlpha})`;
-            ctx.lineWidth = 1.5;
+            // Draw vector field - cover entire visible range
+            if (state.showVectorField) {
+                const vectorAlpha = state.representation === 'empirical' && state.numParticles > 50 
+                    ? state.vectorOpacity * 0.5 
+                    : state.vectorOpacity;
+                
+                ctx.strokeStyle = `rgba(255, 99, 71, ${vectorAlpha})`;
+                ctx.fillStyle = `rgba(255, 99, 71, ${vectorAlpha})`;
+                ctx.lineWidth = 1.5;
+                
+                const viewRange = 2.5 / state.zoom;
+                const xMinWorld = -viewRange - state.panX;
+                const xMaxWorld = viewRange - state.panX;
+                const yMinWorld = -viewRange - state.panY;
+                const yMaxWorld = viewRange - state.panY;
                 
                 const spacing = state.vectorDensity;
                 for (let i = 0; i <= spacing; i++) {
                     for (let j = 0; j <= spacing; j++) {
-                        const x = (i / spacing - 0.5) * 4;
-                        const y = (j / spacing - 0.5) * 4;
+                        const x = xMinWorld + (i / spacing) * (xMaxWorld - xMinWorld);
+                        const y = yMaxWorld - (j / spacing) * (yMaxWorld - yMinWorld);
                         const [vx, vy] = vectorField(x, y);
                         
                         if (vx * vx + vy * vy > 0.0001) {
@@ -1194,6 +1128,7 @@
                         }
                     }
                 }
+            }
         }
         
         // Main draw function
@@ -1208,8 +1143,6 @@
         // Animation loop
         function animate() {
             if (state.isPlaying) {
-                // Each step should take exactly 1 second
-                // With 60 FPS, increment = 1 / (60 frames * number of steps)
                 const framesPerSecond = 60;
                 const totalFrames = framesPerSecond * state.steps.length;
                 const increment = 1 / totalFrames;
@@ -1241,12 +1174,10 @@
             const mouseX = e.clientX - rect.left;
             const mouseY = e.clientY - rect.top;
             
-            // Zoom in/out
             const zoomFactor = e.deltaY > 0 ? 0.9 : 1.1;
             const newZoom = Math.max(0.5, Math.min(5, state.zoom * zoomFactor));
             
             if (state.dimension === 2) {
-                // Zoom to mouse position in 2D
                 const scale = 160 * state.zoom;
                 const centerX = canvas.width / 2;
                 const centerY = canvas.height / 2;
@@ -1260,7 +1191,6 @@
                 state.panX = (mouseX - centerX) / newScale - worldX;
                 state.panY = -(mouseY - centerY) / newScale - worldY;
             } else {
-                // Zoom to mouse position in 1D
                 const padding = 50;
                 const graphWidth = canvas.width - 2 * padding;
                 const xMin = -3 / state.zoom - state.panX;
@@ -1289,11 +1219,9 @@
             state.lastMouseY = y;
             
             if (e.shiftKey) {
-                // Shift+click to set b value
                 state.isSettingB = true;
                 updateBFromMouse(x, y);
             } else {
-                // Regular click to pan
                 state.isPanning = true;
             }
             
@@ -1309,7 +1237,6 @@
                 if (state.isSettingB) {
                     updateBFromMouse(x, y);
                 } else if (state.isPanning) {
-                    // Pan the view
                     const dx = x - state.lastMouseX;
                     const dy = y - state.lastMouseY;
                     
@@ -1343,28 +1270,24 @@
             state.isSettingB = false;
         });
         
-        // Add keyboard shortcuts
         document.addEventListener('keydown', function(e) {
             if (e.target.tagName === 'INPUT') return;
             
             switch(e.key) {
                 case 'r':
                 case 'R':
-                    // Reset zoom and pan
                     state.zoom = 1;
                     state.panX = 0;
                     state.panY = 0;
                     draw();
                     break;
                 case ' ':
-                    // Space to play/pause
                     e.preventDefault();
                     document.getElementById('playBtn').click();
                     break;
             }
         });
         
-        // Update b value from mouse position (accounting for zoom/pan)
         function updateBFromMouse(mouseX, mouseY) {
             const { stepIndex } = getStepFromGlobalTime(state.globalTime);
             if (stepIndex >= state.steps.length) return;
@@ -1383,7 +1306,6 @@
                     const newB = -step.a[0] * worldX;
                     step.b = newB;
                     
-                    // Update both slider and text input
                     const slider = document.getElementById(`b-slider-${stepIndex}`);
                     const input = document.getElementById(`b-input-${stepIndex}`);
                     if (input) {
@@ -1406,7 +1328,6 @@
                     const newB = -(step.a[0] * worldX + step.a[1] * worldY);
                     step.b = newB;
                     
-                    // Update both slider and text input
                     const slider = document.getElementById(`b-slider-${stepIndex}`);
                     const input = document.getElementById(`b-input-${stepIndex}`);
                     if (input) {
@@ -1420,7 +1341,6 @@
             }
         }
         
-        // Timeline click handler
         document.getElementById('timeline').addEventListener('click', function(e) {
             const rect = this.getBoundingClientRect();
             const x = e.clientX - rect.left;
@@ -1521,7 +1441,6 @@
         
         document.getElementById('addStepBtn').addEventListener('click', addStep);
         
-        // Toggle visualization overlays (hyperplane and vector field)
         function toggleVisualization() {
             state.showHyperplane = !state.showHyperplane;
             state.showVectorField = !state.showVectorField;
@@ -1538,7 +1457,6 @@
             draw();
         }
         
-        // Save current canvas as image
         function saveImage() {
             const filename = prompt('Enter filename for image:', `relu_flow_${Date.now()}.png`);
             if (filename) {
@@ -1555,7 +1473,6 @@
             }
         }
         
-        // Toggle video recording
         function toggleRecording() {
             if (state.isRecording) {
                 stopRecording();
@@ -1564,12 +1481,9 @@
             }
         }
         
-        // Start recording the animation
         function startRecording() {
-            // Alert about video format
             alert('Note: Video will be saved as WebM format.\n\nTo convert to MP4:\n• Use FFmpeg: ffmpeg -i video.webm video.mp4\n• Or use online converters like CloudConvert\n• Or use VLC Media Player');
             
-            // Reset to beginning
             state.globalTime = 0;
             document.getElementById('globalTime').value = 0;
             const totalSeconds = 0;
@@ -1577,17 +1491,15 @@
             updateTimelineCursor();
             draw();
             
-            // Set up MediaRecorder with higher quality
-            const stream = canvas.captureStream(60); // 60 FPS for smoother video
+            const stream = canvas.captureStream(60);
             const options = {
                 mimeType: 'video/webm;codecs=vp9',
-                videoBitsPerSecond: 10000000 // 10 Mbps for higher quality
+                videoBitsPerSecond: 10000000
             };
             
             try {
                 state.mediaRecorder = new MediaRecorder(stream, options);
             } catch (e) {
-                // Fallback to VP8 if VP9 is not supported
                 try {
                     const fallbackOptions = {
                         mimeType: 'video/webm',
@@ -1595,7 +1507,6 @@
                     };
                     state.mediaRecorder = new MediaRecorder(stream, fallbackOptions);
                 } catch (e2) {
-                    // Final fallback
                     state.mediaRecorder = new MediaRecorder(stream);
                 }
             }
@@ -1623,39 +1534,34 @@
                     URL.revokeObjectURL(url);
                 }
                 
-                // Reset button state
                 const btn = document.getElementById('recordBtn');
                 btn.textContent = '🎥 Record Video';
                 btn.classList.remove('recording');
                 state.isRecording = false;
             };
             
-            // Start recording
             state.mediaRecorder.start();
             state.isRecording = true;
             
-            // Update button
             const btn = document.getElementById('recordBtn');
             btn.textContent = '⏹ Stop Recording';
             btn.classList.add('recording');
             
-            // Start playing animation
             state.isPlaying = true;
             document.getElementById('playBtn').textContent = '⏸ Pause';
             animateRecording();
         }
         
-        // Animation loop for recording
         function animateRecording() {
             if (state.isRecording && state.isPlaying) {
-                state.globalTime += 0.008; // Slower for smoother recording at 60fps
+                state.globalTime += 0.008;
                 
                 if (state.globalTime >= 1) {
                     state.globalTime = 1;
                     draw();
                     setTimeout(() => {
                         stopRecording();
-                    }, 100); // Small delay to capture last frame
+                    }, 100);
                 } else {
                     document.getElementById('globalTime').value = state.globalTime;
                     const totalSeconds = state.globalTime * state.steps.length;
@@ -1668,7 +1574,6 @@
             }
         }
         
-        // Stop recording
         function stopRecording() {
             if (state.mediaRecorder && state.isRecording) {
                 state.mediaRecorder.stop();
