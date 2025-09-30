@@ -888,7 +888,7 @@
                 }
             }
             
-            // Draw negative halfspace in empirical mode
+            // Draw negative halfspace in empirical mode (where ReLU = 0, field = 0)
             if (state.representation === 'empirical') {
                 const { stepIndex } = getStepFromGlobalTime(state.globalTime);
                 if (stepIndex < state.steps.length) {
@@ -898,13 +898,18 @@
                         const xPos = padding + (hyperplaneX - xMin) * xScale;
                         
                         ctx.fillStyle = 'rgba(150, 150, 150, 0.15)';
-                        if (step.a[0] > 0) {
-                            // Negative side is to the left
+                        
+                        // Test which side is negative by checking a point on each side
+                        const testLeft = step.a[0] * (hyperplaneX - 1) + step.b;
+                        const testRight = step.a[0] * (hyperplaneX + 1) + step.b;
+                        
+                        if (testLeft < 0) {
+                            // Left side is negative (field = 0)
                             ctx.fillRect(padding, padding, 
                                         Math.max(0, xPos - padding), 
                                         canvas.height - 2 * padding);
-                        } else {
-                            // Negative side is to the right
+                        } else if (testRight < 0) {
+                            // Right side is negative (field = 0)
                             ctx.fillRect(xPos, padding, 
                                         canvas.width - padding - xPos, 
                                         canvas.height - 2 * padding);
@@ -1127,7 +1132,7 @@
             ctx.lineTo(axisX, canvas.height);
             ctx.stroke();
             
-            // Draw negative halfspace in empirical mode
+            // Draw negative halfspace in empirical mode (where ReLU = 0, field = 0)
             if (state.representation === 'empirical') {
                 const { stepIndex } = getStepFromGlobalTime(state.globalTime);
                 if (stepIndex < state.steps.length) {
@@ -1136,12 +1141,11 @@
                     ctx.fillStyle = 'rgba(150, 150, 150, 0.15)';
                     ctx.beginPath();
                     
-                    // We need to fill the negative halfspace: a[0]*x + a[1]*y + b < 0
-                    // This means we need to determine which side of the hyperplane is negative
-                    
                     if (Math.abs(step.a[0]) > 1e-10 || Math.abs(step.a[1]) > 1e-10) {
-                        // Test point (0,0) to determine which side is negative
-                        const testValue = step.b;
+                        // Find which side of hyperplane has a[0]*x + a[1]*y + b < 0
+                        // Test origin (0, 0)
+                        const originValue = step.b;
+                        const originIsNegative = originValue < 0;
                         
                         if (Math.abs(step.a[1]) > 1e-10) {
                             // Hyperplane is not vertical
@@ -1153,10 +1157,13 @@
                             const [cx1, cy1] = toCanvas(x1_world, y1_world);
                             const [cx2, cy2] = toCanvas(x2_world, y2_world);
                             
-                            // Create a large polygon covering the negative side
-                            if (testValue < 0) {
-                                // Origin is on negative side, fill below/above the line depending on orientation
-                                if (step.a[1] > 0) {
+                            if (originIsNegative) {
+                                // Origin is negative, fill the side containing origin
+                                // Determine if origin is above or below line
+                                const originY = -(step.a[0] * 0 + step.b) / step.a[1];
+                                const originIsBelow = 0 < originY;
+                                
+                                if (originIsBelow) {
                                     // Fill below the line
                                     ctx.moveTo(cx1, cy1);
                                     ctx.lineTo(cx2, cy2);
@@ -1170,8 +1177,11 @@
                                     ctx.lineTo(0, 0);
                                 }
                             } else {
-                                // Origin is on positive side
-                                if (step.a[1] > 0) {
+                                // Origin is positive, fill the opposite side
+                                const originY = -(step.a[0] * 0 + step.b) / step.a[1];
+                                const originIsBelow = 0 < originY;
+                                
+                                if (originIsBelow) {
                                     // Fill above the line
                                     ctx.moveTo(cx1, cy1);
                                     ctx.lineTo(cx2, cy2);
@@ -1190,20 +1200,20 @@
                             const x_world = -step.b / step.a[0];
                             const [cx, ] = toCanvas(x_world, 0);
                             
-                            if (testValue < 0) {
-                                if (step.a[0] > 0) {
-                                    // Fill to the left
+                            if (originIsNegative) {
+                                // Origin is negative, fill its side
+                                const originIsLeft = 0 < x_world;
+                                if (originIsLeft) {
                                     ctx.rect(0, 0, cx, canvas.height);
                                 } else {
-                                    // Fill to the right
                                     ctx.rect(cx, 0, canvas.width - cx, canvas.height);
                                 }
                             } else {
-                                if (step.a[0] > 0) {
-                                    // Fill to the right
+                                // Origin is positive, fill opposite side
+                                const originIsLeft = 0 < x_world;
+                                if (originIsLeft) {
                                     ctx.rect(cx, 0, canvas.width - cx, canvas.height);
                                 } else {
-                                    // Fill to the left
                                     ctx.rect(0, 0, cx, canvas.height);
                                 }
                             }
