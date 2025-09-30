@@ -6,21 +6,26 @@ Interactive demo to explore density evolution under a piecewise-linear flow driv
 **Code:** https://github.com/antonioalvarezl/relu-flow-simulator  
 **License:** MIT
 
+## Inspiration
+
+This tool was created with inspiration from the paper:
+
+**Álvarez-López, A., Geshkovski, B., & Ruiz-Balet, D. (2025).** *Constructive approximate transport maps with normalizing flows.* Applied Mathematics & Optimization, 92(2), 33.  
+[https://doi.org/10.1007/s00245-025-10299-7](https://doi.org/10.1007/s00245-025-10299-7)
+
+The paper studies approximate controllability for the continuity equation and constructs time-dependent controls $\theta = (w, a, b)$ in the vector field $x \mapsto w(a^\top x + b)_+$ to approximately transport a base density to a target density. This simulator provides an interactive visualization of the density evolution under such ReLU-driven flows.
+
 ## Overview
 
 We visualize solutions of the continuity equation:
-
 $$
-\\partial_t \\rho(x,t) + \\nabla \\cdot (\\rho(x,t)\\, v(x)) = 0
+\partial_t \rho(x,t) + \nabla \cdot (\rho(x,t)\, v(x)) = 0
 $$
-
 with velocity field
-
 $$
-v(x) = w \\, \\max(0, a^\\top x + b),
+v(x) = w \, \max(0, a^\top x + b),
 $$
-
-for $w,a \\in \\mathbb{R}^d$ ($d = 1$ or $d=2$).
+for $w,a \in \mathbb{R}^d$ ($d = 1$ or $d=2$).
 
 A timeline splits the evolution into steps; each step uses its own parameters $(w,a,b)$, and the total map is the composition across steps.
 
@@ -39,67 +44,57 @@ A timeline splits the evolution into steps; each step uses its own parameters $(
   - **Population** (analytical density via closed-form pullbacks)
   - **Empirical** (particles; choose 10–100 and Resample)
 - **Multi-step timeline:** add/remove steps; per-step sliders for $w$, $a$, $b$.  
-  - Click on the **canvas** to set the current step’s $b$ (hyperplane position).  
+  - Click on the **canvas** to set the current step's $b$ (hyperplane position).  
   - **Global time** slider runs through the whole timeline; **Play/Pause** and **Reset**.
 - **Visualization:**  
   - **Vector field** overlay (opacity slider; density slider in 2D).  
   - **Heatmap resolution** (2D).
 
-The info panel shows the current step, time-in-step, the value of $w \\cdot a$, and the Jacobian factor where applicable. In 1D, the total mass estimate is displayed.
+The info panel shows the current step, time-in-step, the value of $w \cdot a$, and the Jacobian factor where applicable. In 1D, the total mass estimate is displayed.
 
 ## Mathematical background (closed-form map)
 
-Let $H^+ = \\{x : a^\\top x + b > 0\\}$ and $H^- = \\{x : a^\\top x + b \\leq 0\\}$.
+Let $H^+ = \{x : a^\top x + b > 0\}$ and $H^- = \{x : a^\top x + b \leq 0\}$.
 
 - **Inactive region $H^-$:**
-
 $$
-\\rho_t(x) = \\rho_0(x)
+\rho_t(x) = \rho_0(x)
 $$
 
 - **Active region $H^+$:**
-
-  If $w \\cdot a \\neq 0$:
-
+  If $w \cdot a \neq 0$:
 $$
-e^{-t w a^\\top} = I + \\frac{e^{-t (w \\cdot a)} - 1}{w \\cdot a} \\, w a^\\top
+e^{-t w a^\top} = I + \frac{e^{-t (w \cdot a)} - 1}{w \cdot a} \, w a^\top
 $$
-
 $$
-x_0 = e^{-t w a^\\top} x - \\frac{b}{w \\cdot a}\\big(1 - e^{-t (w \\cdot a)}\\big) w
+x_0 = e^{-t w a^\top} x - \frac{b}{w \cdot a}\big(1 - e^{-t (w \cdot a)}\big) w
 $$
-
 $$
-\\rho_t(x) = \\rho_0(x_0) \\, e^{-t (w \\cdot a)}
+\rho_t(x) = \rho_0(x_0) \, e^{-t (w \cdot a)}
 $$
 
-  If $w \\cdot a = 0$:
-
+  If $w \cdot a = 0$:
 $$
-e^{-t w a^\\top} = I - t w a^\\top
+e^{-t w a^\top} = I - t w a^\top
 $$
-
 $$
-x_0 = (I - t w a^\\top) x - t b w
+x_0 = (I - t w a^\top) x - t b w
 $$
-
 $$
-\\rho_t(x) = \\rho_0(x_0)
+\rho_t(x) = \rho_0(x_0)
 $$
 
 For multiple steps, the simulator composes these maps in order.  
-
 In **empirical** mode, particles follow
-
 $$
-\\dot x = w \\, \\max(0, a^\\top x + b).
+\dot x = w \, \max(0, a^\top x + b).
 $$
 
 ## Usage notes
 
 - **1D view:** line plot of the current density, hyperplane location (vertical dashed line), and a row of arrows showing the vector field.
-- **2D view:** density heatmap, vector field arrows, and the current hyperplane (line).
-- **Setting $b$ quickly:** click or drag on the canvas to update $b$ for the current step.
+- **2D view:** density heatmap, vector field arrows, and the current hyperplane (line). In empirical mode, the gray shaded region indicates where $a^\top x + b < 0$ (where the ReLU is inactive and particles don't move).
+- **Setting $b$ quickly:** Shift+click or drag on the canvas to update $b$ for the current step.
 - **Step timing:** the global time $[0,1]$ is split evenly across the number of steps.
 
 ## Educational applications
@@ -108,8 +103,18 @@ $$
 - **Researchers:** sanity-check closed-form behavior and degenerate vs. non-degenerate regimes.
 - **Educators:** use the timeline to stage examples in lectures; switch to particles for a discrete view.
 
-## Credits
+## Citation
 
-If you use this demo in **talks or teaching materials**, please credit:
-
-> Antonio Alvarez — *ReLU Neural ODE Density Flow Simulator* (GitHub/Live link)
+If you use this demo in your research or teaching, please cite the original paper:
+```bibtex
+@article{AlvarezLopez2025,
+  author = {Álvarez-López, Antonio and Geshkovski, Borjan and Ruiz-Balet, Domènec},
+  title = {Constructive approximate transport maps with normalizing flows},
+  journal = {Applied Mathematics \& Optimization},
+  year = {2025},
+  volume = {92},
+  number = {2},
+  pages = {33},
+  doi = {10.1007/s00245-025-10299-7},
+  url = {https://doi.org/10.1007/s00245-025-10299-7}
+}
